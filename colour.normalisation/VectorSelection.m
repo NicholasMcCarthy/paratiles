@@ -4,10 +4,14 @@
 function [ output_args ] = VectorSelection( varargin )
 %% SELECT ROI FROM EACH IMAGE FOR EACH CLASS
 
-p = inputParser;
 
-p.addRequired('Images', @(x) iscellstr(x) & checkFilesExist(x));
+p = inputParser;
+% checks images is a cellstr, are files that exist and are images
+p.addRequired('Images', @(x) iscellstr(x) & all(cellfun(@(y) exist(y, 'file'), x)) & verifyImages(x));
+% Classes can be specified by any thing ..
 p.addRequired('Classes', @(x) iscellstr(x));
+% 
+p.addOptional('CSVFile', 'vectorselection_output.csv', @(x) ischar(x)); % Just check its a string here 
 
 p.parse(varargin{:});
 
@@ -15,29 +19,58 @@ images = p.Results.Images;
 classes = p.Results.Classes;
 
 
-% Forgot this bit, handle it better ..
-csvfile = 'vector_selection_results.csv';
-% Write output csv headers
+disp('#-#-#-#-#-#-#-#-#-#-#-#-#-');
+disp('---- Vector Selection ----');
+disp('#-#-#-#-#-#-#-#-#-#-#-#-#-');
 
-fid = fopen(csvfile, 'a');
-fprintf(fid, 'filename, R, G, B, class\n');
-fclose(fid);
+disp('Setting up output file ..');
 
+% Set up output CSV filepath, writemode & headers
+csvfile = p.Results.CSVFile;
 
-for i = 1:size(images, 1);
+wrmode = 'wt';
+if (~exist(csvfile))
+    wrmode = 'wt';
+else
+    ret = input('Output CSV file already exists. Overwrite ? [Y/N]  ', 's');
+    if (strcmp(ret, 'N'))   % Default to append ..
+        wrmode = 'a';
+        fprintf('Will append new data to: %s \n', csvfile);
+    else
+        fprintf('Overwriting data in: %s \n', csvfile);
+        wrmode = 'wt';
+    end
+end;
+
+if (strcmp(wrmode, 'wt'))
+    fid = fopen(csvfile, 'wt');
+    fprintf(fid, '%c %c %c %s', 'R', 'G', 'B', 'class');
+    fclose(fid);
+end
+
+disp('Preallocating results data struct ..');
+% Preallocate data struct - could be neater but they get appended each selection
+data(length(classes)).images(length(images)).pixels = [];
+for l = 1:length(classes)
+    for ip = 1:length(images)
+        data(l).images(ip).pixels = [];
+    end
+end
+
+for i = 1:length(images)
     
     % Read the image
-    fprintf('Image: %s \nLoading, please wait.. \n ', images{i});
+    fprintf('Loading image: %s \n', images{i});
     
     I = imread(images{i});
     
-    fprintf('Displaying image. \n');
+%     fprintf('Displaying image. \n');
     
     iptsetpref('ImshowBorder','tight'); 
     set(gca,'visible','off');
+    set(gca, 'Units', 'Normalized', 'OuterPosition', [0 0 1 1]);
     imshow(I);
-    
-    
+        
  %   set(gca, 'units', 'pixels') % Sets the axes units to pixels
  %   x = get(gca, 'position');   % Get the position of the axes
  %   set(gcf, 'units', 'pixels');% Sets the figure units to pixels
@@ -53,22 +86,21 @@ for i = 1:size(images, 1);
 %     for c_ = 1:length(classes)
 %         for i_ = 1:length(images)
 %             data(c_).images(i_).pixels = [];
-    data(length(classes)).images(length(images)).pixels = [];
-    
+
     while(true) % iterate over images selecting regions of each class in each 
         
-        fprintf('######\nREPOSITION/ZOOM IMAGE AS NECESSARY. \n');
-        fprintf(strcat('######\nSELECT CLASS: [', repmat('%s , ', 1, length(classes)), ']\n'), classes{:});
-        reply = input('OR [N]ext image, [Q]uit: ', 's');
+        fprintf('---------------------------\nReposition or zoom on the image as necessary.\n---------------------------\n');
+        fprintf(strcat('Select class: \t', repmat(' [%s] ', 1, length(classes)), '\n[N]ext image \t [Q]uit :\t'), classes{:});
+        reply = input('', 's');
         
-        if (strcmp(reply, 'Q'))
+        if (strcmp(reply, 'Q'))             % Quits the program
             fprintf('Quitting..\n');
-            return;
+            return;                     
             
-        elseif (strcmp(reply, 'N'))
+        elseif (strcmp(reply, 'N'))         % Breaks out of while loop, goes to next iteration of for loop
             break;
             
-        elseif (ismember(reply, classes))
+        elseif (ismember(reply, classes))   % Otherwise, select another region on this image, etc
            
             c = find(ismember(classes, reply)==1);
             fprintf('Selected: %s \n', classes{c});
@@ -84,55 +116,83 @@ for i = 1:size(images, 1);
 
             fprintf('Extracting pixel RGB values. \n');
             pixel_values = im_rgblist(I, mask); % Use im_rgblist function to get RGB pixel values 
-            %%%
-            %%  missing im_rgblist function, need to find it
-            %% 
             fprintf('Extracted %d pixels. \n', size(pixel_values,1));
             
-            data(c).images(i).pixels = [ data(c).images(i).pixels ; pixel_values ] % Append them to existing pixel values for this image
-        
-            
+            data(c).images(i).pixels = [ data(c).images(i).pixels ; pixel_values ]; % Append them to existing pixel values for this image
+         
         end; % if loop
         
     end; % while loop
     
-    fprintf('Writing pixel data to: %s\n', csvfile);
-    fprintf('Please wait ..');
     
+    % Write data to CSV file - 
+
+    fprintf('Writing data to output: %s\n', csvfile);
+
     fid = fopen(csvfile, 'a');
-    
+
     for c = 1:length(classes)
-        
-        for j = 2:size(data(c).images(i).pixels, 1) % j starts at 2 to ignore the preallocated pixel thingie
-            
-            line = strcat(tiffname, ',',sprintf('%d,%d,%d',data(c).images(i).pixels(j,:)), ',', classes{c}, '\n');
+
+        for j = 1:size(data(c).images(i).pixels, 1) % j starts at 2 to ignore the preallocated pixel thingie
+
+            line = strcat(images{i}, ',',sprintf('%d,%d,%d',data(c).images(i).pixels(j,:)), ',', classes{c}, '\n');
             fprintf(fid, line);
         end;
     end;
     fclose(fid);
-    fprintf(' done!\n') ;
+    
 end;
 
 fprintf('Completed ROI selection.\n');
 
+
+
+
 end
 
 function ret = im_rgblist(image, mask)
-    
+
+% Input: An n-channel image, a binary mask.
+% Output: Matrix of pixel values of area in the mask. Each row is a pixel,
+% each column is a channel value.
+
     ret = reshape(image, size(image, 1)*size(image, 2), size(image, 3));
-    ret = ret(mask(:)==1,:)
+    ret = ret(mask(:)==1,:);
+    
 end
 
-function ret = checkFilesExist(files) 
+function ret = verifyImages(files) 
+% Input: A cellstr of paths to image files
+% Output: True if all files listed exist and are images, false otherwise.
 
-    % make the cellfun function boolean ..
-    % cellfun(@(x) any(exist(x, 'file')==0), images)
     ret = true;
     for i = 1:length(files)
         
-        if ~exist(char(files(i)), 'file');
-            ret = false;
+        try 
+            imfinfo(files{i});
+        catch err
+            ret = false; 
             break;
-        end
+        end; 
     end
 end
+
+%% roughwork area
+
+
+% for i = 1:20
+%     
+%     disp(i);
+%     x = 1;
+%     
+%     while(x > 0)
+%       
+%         x = input('Press 1 or 0: ');
+%         
+%         if(x == 2) 
+%             disp('X is 2!');
+%             break;
+%         end
+%     end
+%     
+% end;

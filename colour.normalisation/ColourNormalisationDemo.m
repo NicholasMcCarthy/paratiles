@@ -20,5 +20,5 @@ csvfile = 'test_vector_selection.csv';
 VectorSelection(images, classes, csvfile);
 
 %% Normalising colour images ..
-      
-    
+
+
