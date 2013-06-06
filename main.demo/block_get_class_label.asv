@@ -1,0 +1,52 @@
+
+function [label coverage] = block_get_class_label( block_struct )
+%  GET_CLASS_LABEL Determines class label of an input block_struct.dataage.
+%  IN: block_struct.dataage in RGB or RGBA format. <widthxheight uint8> 
+%  OUT: Class label as string. 
+%       Label determined by counting specific pixel values in block_struct.dataage. 
+%
+%  Nicholas McCarthy 2012
+%  <nicholas.mccarthy@gmail.com>
+
+
+%% CLASS-LABELS AND RGB PIXEL VALUES
+if (size(im, 3) ~= 1)
+    error('block_get_class_label:: Expecting grayscale image.');#
+else
+    
+% Returns label as the mask class value
+    
+A = sort(block_struct.data(:), 'descend');
+label = A(1);
+coverage = 
+    
+    % Returns label as a string
+%     % Counts corresponding to class labels for specific pixel values    
+%     GG3 = sum(sum(block_struct.data == 0));
+%     GG34 = sum(sum(block_struct.data == 28));
+%     GG4 = sum(sum(block_struct.data == 56));
+%     GG34 = sum(sum(block_struct.data == 85));
+%     GG5 = sum(sum(block_struct.data == 113));
+%     INF = sum(sum(block_struct.data == 141));
+%     ART = sum(sum(block_struct.data == 170));
+%     TIS = sum(sum(block_struct.data == 198));
+%     NON = sum(sum(block_struct.data == 255));
+%     
+%     % Find the label with the most pixels in the block_struct.dataage.
+%     label = 'NON';
+%     max = 0;
+% 
+%     if GG3 >  max; label = 'GG3' ; max = GG3;  end;    
+%     if GG34 > max; label = 'GG34'; max = GG34; end;
+%     if GG4 >  max; label = 'GG4' ; max = GG4;  end;
+%     if GG45 > max; label = 'GG45'; max = GG45;  end;
+%     if GG5 >  max; label = 'GG5' ; max = GG5;  end;
+%     if INF >  max; label = 'INF' ; max = INF;  end;
+%     if ART >  max; label = 'ART' ; max = ART;  end;
+%     if TIS >  max; label = 'TIS' ; max = TIS;  end;
+%     if NON >  max; label = 'NON' ; max = NON;  end;
+% F = label;
+   
+end
+
+

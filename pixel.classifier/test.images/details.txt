@@ -1,0 +1,3 @@
+x0000000000###.tif images are 512px^2 images taken from 40x mag images.
+
+The two PCRC-BIMS_etc.. images are larger cropped images taken from 20x mag images. 

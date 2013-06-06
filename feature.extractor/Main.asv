@@ -1,0 +1,108 @@
+% This is the main script for running feature extraction
+
+% Author: Nicholas McCarthy (nicholas.mccarthy@gmail.com)
+% Created: 27-05-2013
+% Updated: 27-05-2013
+
+
+%% Setup 
+%--------
+% Sets env vars, any other odds and ends
+
+[data.images data.masks ] = get_image_files(env.image_dir); % env should be declared ..
+
+classes = struct('Class', char(0),'NumValue', uint8(0))
+
+
+%% Init
+%--------
+% Init vars for run
+
+% Load classifier model (??? Not sure on best implementation of this. Think
+% it would be wise to start with an assumption of parallel models
+
+% Set tilesize for blockproc command 
+
+image_tilesize = [256 256];
+mask_tilesize = [16 16];
+
+matlabpool local 3;     % Open matlab pool for parallel processing
+
+
+%% RUN METHODS
+%--------
+% Run the tile processing and classification
+%% EXTRACT CLASS LABELS
+
+func_labels = @(block_struct) block_get_class_label(block_struct);
+
+lresults = struct();
+
+for i = 1:19 %length(images); % Last image and mask need to be added and processed
+    
+    disp(i); tic;
+    mask_filepath = strcat(env.image_dir, data.masks(i).name); % Get mask filepath
+
+    % Blockproc mask image to get class labels
+    G = blockproc(mask_filepath, mask_tilesize, func_labels, 'PadPartialBlocks', true, 'PadMethod', 'replicate' ); 
+   
+    lresults(i).mask = mask_filepath;
+    lresults(i).labelrows = G(:);
+    toc
+    
+    % convert class num values to labels  
+    
+end
+
+save 'get_class_labels' lresults
+%%
+
+labels = [];
+filename = [];
+ % move this to loop above after this is done
+for i = 1:19
+    labels = vertcat(labels, lresults(i).labelrows);        
+    filename = vertcat(filename, repmat(mm, length(lresults(i).labelrows), 1));
+end
+
+regex
+
+%% EXTRACT FEATURES
+
+func_haralick = @(block_struct) shiftdim(extract_haralick_features(block_struct.data, 8), -1)
+
+PC = PixelClassifier();
+func_cicm = @(block_struct) shiftdim(PC.CICMFeatures(block_struct.data), -1)
+
+fresults = struct();
+
+for i = 1:19 %length(images); % Last image and mask need to be added and processed
+    
+    image_filepath = strcat(env.image_dir, data.images(i).name);
+    mask_filepath = strcat(env.image_dir, data.masks(i).name);
+
+    G = blockproc(image_filepath, image_tilesizes, func_cicm, 'PadPartialBlocks', true, 'PadMethod', 'replicate' ); 
+    
+    [X Y Z] = size(G);       % Get image feature vector dimensions ..
+    
+    G = reshape(G, X*Y, Z);  % Reshape to feature vector format .. 
+    
+    fresults(i).image = image_filepath;
+    fresults(i).rows = G;
+    
+end
+
+save 'get_cicm_features' fresults
+
+%% Tidy
+%--------
+% Post processing clean up
+
+
+
+
+
+%% Roughwork area
+
+
+

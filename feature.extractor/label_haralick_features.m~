@@ -1,0 +1,68 @@
+
+function label_vector = label_haralick_features( varargin )
+% Gets the labels for the feature vector
+
+% Author: Nicholas McCarthy (nicholas.mccarthy@gmail.com)
+% Created: 20-05-2013
+% Updated: 04-06-2013
+
+%% PARSE INPUTS
+
+inputs = ParseInputs(varargin{:});
+
+%% 
+
+label_vector = cell(1,inputs.NumGLCMs*13);
+
+c = 1;                                                  % feature_matrix row index
+
+if inputs.UseStrings
+    L = {'enrgy', 'contrast', 'corr
+
+
+for z = inputs.Channels;                                % For each specified channel
+    for nl = inputs.NumLevels                       % For each specified quantization
+        for d = inputs.Distances                            % For each specified distance
+
+            label = strcat(z, '_', num2str(nl), '_', num2str(d), '_');
+            
+            for i = 1:15
+                
+                label_vector{c} = strcat(label, 'f', num2str(i));  % Extract features and add to feature_matrix
+
+                c = c + 1;
+            end
+            
+        end
+    end
+end
+
+
+function PI = ParseInputs(varargin)
+
+% Anonymous functions for parser
+
+check_scalar_vector = @(x) isscalar(x) || isvector(x);
+check_use_strings = @(x) islogical(x);
+
+p = inputParser;
+p.addRequired('Channels', @iscellstr);      
+p.addOptional('NumLevels', 256, check_scalar_vector);    % Defaults to GLCM with 256 bins
+p.addOptional('Distances', 1, check_scalar_vector);      % Defaults to pixel distance 1
+p.addOptional('UseStrings', false, check_use_strings);   % Can output string values for each feature
+
+p.parse(varargin{:});                                       % Parse the results
+
+NumGLCMs = length(p.Results.NumLevels) * length(p.Results.Distances) * length(p.Results.Channels); % Number of bins * number of channels GLCMs can be calculated on.
+
+% Note: No check for alpha channel
+PI.Channels = p.Results.Channels;
+PI.Distances = p.Results.Distances;
+PI.NumLevels = p.Results.NumLevels;
+PI.UseStrings = p.Results.UseStrings;
+PI.NumGLCMs = NumGLCMs;
+
+
+
+
+

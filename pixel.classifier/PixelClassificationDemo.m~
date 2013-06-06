@@ -1,0 +1,278 @@
+% Demo for PixelClassifier 
+
+% Get list of images in test_images folder
+test_images = getAllFiles('/home/nick/Dropbox/matlab/pixel.classification/test.images');
+
+% Create the Pixel Classifier object
+PC = PixelClassifier();
+
+%% Obtaining features
+FV = zeros(length(test_images), 25);
+
+% Iterate over the images, derive features.
+for i = 1:length(test_images)
+    
+    fprintf('Reading image %d\n', i);
+    
+    I = imread(cell2mat(test_images(i)));
+        
+    FV(i,:) = PC.CICMFeatures(I);
+    
+end
+
+%% Plotting image and CICM
+% Iterate over the images, plot base image and cicm
+for i = 1:length(test_images)
+    
+    fprintf('Reading image %d\n', i);
+    
+    I = imread(cell2mat(test_images(i)));
+    
+    if (size(I, 3) == 4)        % Some images have alpha channels (somehow, still)
+        I = I(:,:,1:3);
+    end
+    
+    CICM = PC.GetClassIndexImage(I);    
+    CICM = CICM.*(255/5);
+    
+    figure, subplot(2, 1, 1), imshow(I), subplot(2, 1, 2), imshow(CICM);
+    
+end
+
+%% Obtaining traditional shape features from CI;
+
+I = imread(cell2mat(test_images(4)));
+
+CI = PC.ClassifyImage(I);
+
+L = PC.GetLogical(CI, 'NUCLEI');    % Get Logical image of nuclei locations
+
+figure;
+subplot(1, 3, 1), imshow(I); title('Base Image');
+subplot(1, 3, 2), imshow(CI); title('Class Index Image');
+subplot(1, 3, 3), imshow(L); title('Nuclei Logical Mask');
+
+
+sele2 = strel('disk', 2);
+NL2 = imclose(imopen(L, sele2), sele2);
+
+sele4 = strel('disk', 4);
+NL4 = imopen(imclose(imopen(L, sele4), sele4), sele4);
+
+sele5 = strel('disk', 5);
+NL5 = imclose(imopen(L, sele5), sele5);
+
+figure;
+subplot(1, 3, 1), imshow(NL2);title('Sele2');
+subplot(1, 3, 2), imshow(NL4);title('Sele4');
+subplot(1, 3, 3), imshow(NL5);title('Sele5');
+
+%% Logical masks of each class
+
+I = imread(cell2mat(test_images(1)));
+
+CI = PC.ClassifyImage(I);
+
+Ll = PC.GetLogical(CI, 'LUMEN');
+Ls = PC.GetLogical(CI, 'STROMA');
+Lc = PC.GetLogical(CI, 'CYTOPLASM');
+Ln = PC.GetLogical(CI, 'NUCLEI');       % Get Logical image of nuclei locations
+Li = PC.GetLogical(CI, 'INFLAMMATION'); % Get Logical image of inflammation locations <- 
+
+figure;
+subplot(3, 3, 1), imshow(I); title('Base Image');
+subplot(3, 3, 2), imshow(CI); title('Class Index Image');
+subplot(3, 3, 3), imshow(Ll); title('Lumen Logical Mask');
+subplot(3, 3, 4), imshow(Ls); title('Stroma Logical Mask');
+subplot(3, 3, 5), imshow(Lc); title('Cytoplasm Logical Mask');
+subplot(3, 3, 6), imshow(Ln); title('Nuclei Logical Mask');
+subplot(3, 3, 7), imshow(Li); title('Inflammation Logical Mask');
+
+%% Nuclear Density
+
+I = imread(cell2mat(test_images(4)));               % Read Image
+
+CI = PC.ClassifyImage(I);
+
+L = PC.GetLogical(CI, 'NUCLEI');                    % Logical image of nuclei locations
+Pn = PC.GetProcessedLogical(CI, 'NUCLEI');
+
+% L2 = imopen(L, strel('disk', 2));                   % Morphological Opening
+% L3 = imclose(L2, strel('disk', 2));                 % Morphological Closing
+
+CC = bwconncomp(Pn);                                % Connected components
+
+CC.Areas = cellfun(@length, CC.PixelIdxList);       % Remove areas that are below threshold ? This should be done 
+CC.AreaAvg = mean(CC.Areas);
+CC.Disorder = 1 / (1 + (std(CC.Areas) / CC.AreaAvg));
+
+RP = regionprops(CC, 'Centroid', 'Area', 'Image', 'ConvexImage', 'ConvexHull', 'ConvexArea');
+
+%[r1 r2] = bwboundaries(L3, 'noholes');
+
+% Get centroid coordinates
+Xs = zeros(length(RP), 1); Ys = zeros(length(RP), 1);
+for i = 1:length(RP)
+    Xs(i) = RP(i).Centroid(1);
+    Ys(i) = RP(i).Centroid(2);
+end
+
+Ys = 512-Ys; % Flip Y values for image coordinates
+
+% Voronoi diagram 
+[VX VY] = voronoi(Xs, Ys);  % More plotting options than 'voronoi(x, y)'
+
+% Delaunay triangulation
+DT = delaunay(Xs, Ys);
+
+% figure;
+subplot(3, 2, 1), imshow(CI);
+subplot(3, 2, 2), imshow(L);
+subplot(3, 2, 3), imshow(Pn);
+subplot(3, 2, 5), plot(Xs, Ys, 'r.', VX, VY, 'b-'), xlim([0 512]), ylim([0 512]);
+subplot(3, 2, 6), triplot(DT, Xs, Ys), xlim([0 512]), ylim([0 512]);
+
+% figure;
+% subplot(3, 2, 1), imshow(I), title('Base Image');
+% subplot(3, 2, 2), imshow(CI), title('Class Index image');
+% subplot(3, 2, 3), imshow(L), title('Nuclei Logical Mask');
+% subplot(3, 2, 4), imshow(L2), title('L2 Mask');
+% subplot(3, 2, 5), imshow(L3), title('L3 Mask');
+disp('Done');
+%% Prominent Nucleoli Detection
+% Inflammation and dark nucleotide pixels have a similar colour profile. 
+% Using nuclei and inflammation masks it should be possible to detect
+% nuclei with prominent nucleoli
+
+
+%% Removing Intraluminal content
+
+% Lumen Mask
+
+% Background removal (?) How to remove pixels that aren't in image ? 
+
+% Opening operation to remove mixclassified pixels
+% Closing operation to fill in intraluminal content 
+% 
+
+%% Other features
+
+% Gland Area                % Lumen + Cytoplasm/Nuclei not in stroma
+% Gland Perimeter    
+% Lumen Area
+% Ratio - Gland Area : Lumen Area
+% Ratio - Gland Area : Gland Perimeter
+% Ratio - # Nuclei : Gland Perimeter
+% # Nuclei surrounding lumen (i.e. in cytoplasm)
+% Total lumen area in tile
+% Total stroma area in tile
+% Average lumen area in tile
+% Average stroma area in tile
+% Lumen/stroma ratio
+
+I = imread(cell2mat(test_images(4)));
+
+CI = PC.ClassifyImage(I);
+
+Ll = PC.GetLogical(CI, 'LUMEN');
+Ls = PC.GetLogical(CI, 'STROMA');
+Lc = PC.GetLogical(CI, 'CYTOPLASM');
+Ln = PC.GetLogical(CI, 'NUCLEI');       % Get Logical image of nuclei locations
+Li = PC.GetLogical(CI, 'INFLAMMATION'); % Get Logical image of inflammation locations <- 
+
+figure, imshow(Lc);
+
+%% Stroma area
+
+%% Cytoplasm area
+
+I = imread(cell2mat(test_images(4)));
+CI = PC.ClassifyImage(I);
+Lc = PC.GetLogical(CI, 'CYTOPLASM');
+
+
+figure;
+subplot(231), imshow(I), title('Base image');
+
+subplot(232), imshow(CI), title('Class index image');
+
+subplot(233), imshow(Lc), title('Cytoplasm logical mask');
+
+Lc1 = bwareaopen(Lc, 800); % Remove really small objects
+subplot(234), imshow(Lc1), title('Bwareaopen: 800');
+
+Lc2 = imclose(Lc1, strel('disk', 2));               % Morph closing with small disk
+subplot(235), imshow(Lc2), title('Imclose: disk, 2');
+
+Lc3 = imfill(Lc2, 8, 'holes');                      % Region fill for final mask
+subplot(236), imshow(Lc3), title('Imfill: 4, holes');
+
+
+%% Outlining Processed Mask ROIs
+
+I = imread(cell2mat(test_images(4)));
+CI = PC.ClassifyImage(I);
+Lc = PC.GetLogical(CI, 'CYTOPLASM');
+Pc = PC.GetProcessedLogical(CI, 'CYTOPLASM');
+
+G = I;
+
+M = edge(Pc);
+M = imdilate(M, strel('disk', 2));
+
+G(M ==1) = 0
+
+figure, 
+subplot(121), imshow(I);
+subplot(122), imshow(G);
+
+
+%% Testing Cytoplasm GetProcessedLogical
+
+figure;
+
+idx = 1;
+
+for i = 4:13
+    
+    I = imread(cell2mat(test_images(i)));
+    
+    CI = PC.ClassifyImage(I);
+    
+    LC = PC.GetLogical(CI, 'CYTOPLASM');
+    
+    LP = PC.GetProcessedLogical(CI, 'CYTOPLASM');
+    
+    subplot(10, 4, idx+0), imshow(I);
+    subplot(10, 4, idx+1), imshow(CI);
+    subplot(10, 4, idx+2), imshow(LC);
+    subplot(10, 4, idx+3), imshow(LP);
+    idx = idx +4;
+end;
+
+
+%% Getting nuclei in cytoplasm
+
+I = imread(cell2mat(test_images(4)));
+CI = PC.ClassifyImage(I);
+
+Pc = PC.GetProcessedLogical(CI, 'CYTOPLASM');
+Pn = PC.GetProcessedLogical(CI, 'NUCLEI');
+Ps = PC.GetProcessedLogical(CI, 'STROMA');
+
+Ns = Pn & Ps;
+Nc = Pn & Pc;
+
+figure;
+subplot(321), imshow(CI);
+subplot(322), imshow(
+
+% Pcn = 
+
+%% Getting Stroma area
+
+I = imread(cell2mat(test_images(4)));
+CI = PC.ClassifyImage(I);
+
+
+
