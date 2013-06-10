@@ -33,6 +33,29 @@ end
 
 FV_labels = PC.GetCICMFeatureLabels;
 
+%% Obtaining shape Features
+
+clear PC; PC = PixelClassifier();
+
+FV_shapes = zeros(length(test_images), 10);
+
+% Iterate over the images, derive features.
+for i = 4:length(test_images);
+    
+    fprintf('Reading image %d\n', i);
+    
+    I = imread(test_images{i});
+    
+    CI = PC.ClassifyImage(I);
+   
+    FV_shapes(i,:) = PC.GetShapeFeatures(CI);
+    
+end
+
+FV_labels = PC.GetShapeFeatureLabels;
+
+mydataset =  mymat2dataset(FV_shapes, FV_labels);
+
 %% Obtaining all features
 
 clear PC; PC = PixelClassifier();
@@ -40,7 +63,7 @@ clear PC; PC = PixelClassifier();
 FV = zeros(length(test_images), 60);
 
 % Iterate over the images, derive features.
-for i = 1
+for i = 4:length(test_images)
     
     fprintf('Reading image %d\n', i);
     
@@ -294,7 +317,7 @@ subplot(6,2,12), imshow(Pi);
 
 clear PC; PC = PixelClassifier();
 
-I = imread(cell2mat(test_images(18)));
+I = imread(test_images{5});
 I = I(:,:,1:3); % Account for alpha channel
 
 CI = PC.ClassifyImage(I);  % Classify I -> CI

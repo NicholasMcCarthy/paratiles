@@ -32,9 +32,18 @@ disp('Ready!');
 
 % moved to gen_class_labels.m
 
-load '../datasets/256/class_labels.mat'
-load '../datasets/256/class_labels_summary.mat'
+% load '../datasets/256/class_labels.mat'
+% load '../datasets/256/class_labels_summary.mat'
+%% USING FEATUREEXTRACTOR 
 
+clear FE; FE = FeatureExtractor()
+
+haralick1 = @(I) extract_haralick_features(I, 1, 8);
+haralick2 = @(I) extract_haralick_features(I, [2 4], [8 16 32]);
+
+FE1 = FeatureExtractor(haralick1);
+FE2=  FeatureExtractor(haralick2);
+FE3 = FeatureExtractor(haralick1, haralick2);
 
 %% EXTRACT HARALICK FEATURES
 
@@ -46,7 +55,6 @@ feature_labels = label_haralick_features({'R', 'G', 'B'}, numlevels, distances);
 
 % Call to haralick function. Shiftdim to move features into 3rd dim
 func_haralick = @(block_struct) shiftdim(extract_haralick_features(block_struct.data, numlevels, distances), -1)
-
 
 fresults = struct();
 

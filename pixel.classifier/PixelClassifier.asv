@@ -1,7 +1,7 @@
 classdef PixelClassifier
   
     properties(GetAccess = public, SetAccess = private);
-        Filepath,
+        ModelFilepath,
         Model,
         ClassIndexImage,
         Key = {'LUMEN', 'STROMA', 'CYTOPLASM', 'NUCLEI', 'INFLAMMATION', 'FIXATIVE', 'INTRALUMINAL'}
@@ -16,7 +16,7 @@ classdef PixelClassifier
             
             filepath = 'models/NB-PixelClassifier.LAB.ind.mat';
             
-            this.Filepath = filepath;
+            this.ModelFilepath = filepath;
             
             loaded = load(filepath);
             this.Model = loaded.NB;
@@ -49,7 +49,7 @@ classdef PixelClassifier
         %%%%%%%%%%%%%%%%  % Input: Class index image
         % ProcessImage %  % Output: Processed class index image 
         %%%%%%%%%%%%%%%%
-        function PI = ProcessImage(this, CI);
+        function PI = ProcessImage(this, CI)
            
             Cl = this.GetProcessedMask(CI, 'LUMEN');
             Cs = this.GetProcessedMask(CI, 'STROMA');
@@ -70,6 +70,43 @@ classdef PixelClassifier
             PI(PI==0) = CI(PI==0); % Fill in gaps with pixels from unprocessed image
             
             PI = medfilt2(PI, [5 5]); % Stir with median filter.
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%% % Input: an RGB image
+        % Obtain All Features % % Output: Feature vector of all features
+        %%%%%%%%%%%%%%%%%%%%%%%
+        function FV = GetAllFeatures(this, I)
+           
+            CI = this.ClassifyImage(I);
+            PI = this.ProcessImage(CI);
+            
+            fv_CI = this.GetCICMFeatures(CI);
+           
+            fv_PI = this.GetCICMFeatures(PI);
+            
+            fv_shape = this.GetShapeFeatures(PI);
+            
+            FV = [fv_CI fv_PI fv_shape];
+            
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%% % Input: none
+        % Obtain All Features % % Output: Cell array of feature labels 
+        %%%%%%%%%%%%%%%%%%%%%%% %          taken from GetAllFeatures()
+        function FV_labels = GetAllFeatureLabels(this);
+            
+            CI_labels = this.GetCICMFeatureLabels();
+            
+            PI_labels = this.GetCICMFeatureLabels();
+            
+            % Add P_ to start of features from processed image
+            PI_labels = cellfun(@(x) strcat('P_', x), PI_labels, 'UniformOutput', false);
+           
+            
+            shape_labels = this.GetShapeFeatureLabels();
+            
+            FV_labels = [CI_labels PI_labels shape_labels];
+            
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image
@@ -111,12 +148,21 @@ classdef PixelClassifier
         %%%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image
         % Obtain Shape Features % % Output: Traditional shape features
         %%%%%%%%%%%%%%%%%%%%%%%%% %       
-        function [FV HIST] = GetFeatures(this, CI)
+        function [FV HIST] = GetShapeFeatures(this, CI)
            
-            Pc = PC.GetProcessedMask(CI, 'CYTOPLASM');    %
-            Pn = PC.GetProcessedMask(CI, 'NUCLEI');       %  This assumes that the input CI is the base classified image not the processed one. Rectify.
-            Ps = PC.GetProcessedMask(CI, 'STROMA');       %  
-
+            % Initially used just the processed classified masks, but
+            % switching to fully processed image
+%             Pc = this.GetProcessedMask(CI, 'CYTOPLASM');    %
+%             Pn = this.GetProcessedMask(CI, 'NUCLEI');       %  This assumes that the input CI is the base classified image not the processed one. Rectify.
+%             Ps = this.GetProcessedMask(CI, 'STROMA');       %  
+            
+            PI = this.ProcessImage(CI);
+            
+            % Uses indices of Key properties
+            Pc = PI == find(strcmp(this.Key, 'CYTOPLASM'));
+            Pn = PI == find(strcmp(this.Key, 'NUCLEI'));
+            Ps = PI == find(strcmp(this.Key, 'STROMA'));
+            
             [X Y] = size(CI);
             
             % Simpler than using imhist .. 
@@ -125,22 +171,22 @@ classdef PixelClassifier
                 HIST(h) = sum(sum(CI(:) == (h)));
             end
             
-            % Gland Area                % Lumen + Cytoplasm/Nuclei not in stroma
-            % Gland Perimeter    
-            % Ratio - Gland Area : Gland Perimeter
-            % Ratio - # Nuclei : Gland Perimeter
-            
             % Lumen Area (as ratio of entire tile)
-            lumen_area = HIST(find(strcmp(PC.Key, 'LUMEN'))) / (X * Y); 
+            lumen_area = HIST(strcmp(this.Key, 'LUMEN')) / (X * Y); 
             
             % Stroma Area
-            stroma_area = HIST(find(strcmp(PC.Key, 'STROMA'))) / (X * Y); 
+            stroma_area = HIST(strcmp(this.Key, 'STROMA')) / (X * Y); 
+            
+            % Cytoplasm Area
+            cytoplasm_area = HIST(strcmp(this.Key, 'CYTOPLASM')) / (X * Y); 
             
              % Lumen/stroma ratio
-            lumen_stroma_ratio = HIST(find(strcmp(PC.Key, 'LUMEN'))) / HIST(find(strcmp(PC.Key, 'STROMA')));
+            lumen_stroma_ratio = HIST(strcmp(this.Key, 'LUMEN')) / HIST(strcmp(this.Key, 'STROMA'));
             
             % # Nuclei in stroma
-            Ns = Pn & Ps;               % STROMA ^ NUCLEI
+            
+            
+            Ns = Pn & imfill(imdilate(Ps, strel('disk', 2)) , 8, 'holes');               % STROMA ^ NUCLEI
             Ns = bwareaopen(Ns, 50);    % Remove small areas
             
             CCs = bwconncomp(Ns);
@@ -148,31 +194,32 @@ classdef PixelClassifier
             CCs.AreaAverage = mean(CCs.Areas);
             
             nuclei_in_stroma = CCs.NumObjects;
-            nuclei_in_stroma_average_size = mean(CCs.Areas);
-            nuclei_in_stroma_disorder = 1 / (1 + (std(CCs.Areas) / CCs.Areas
-            
-CC.Areas = cellfun(@length, CC.PixelIdxList);       % Remove areas that are below threshold ? This should be done 
-CC.AreaAvg = mean(CC.Areas);
-CC.Disorder = 1 / (1 + (std(CC.Areas) / CC.AreaAvg));
-            
+            nuclei_in_stroma_average_area = mean(CCs.Areas);
+            nuclei_in_stroma_disorder = 1 / (1 + (std(CCs.Areas) / CCs.AreaAverage));
+           
             % # Nuclei in cytoplasm
-            Nc = Pn & Pc;               % CYTOPLASM ^ NUCLEI
-            Nc = bwareaopen(Nc, 50);    % Remove small areas
+            Nc = Pn & imfill(imdilate(Pc, strel('disk', 2)) , 8, 'holes');               % CYTOPLASM ^ NUCLEI
+            Nc = bwareaopen(Nc, 100);    % Remove small areas
+            Nc = imfill(Nc, 8
+            
             CCc = bwconncomp(Nc);
+            CCc.Areas = mean(cellfun(@length, CCc.PixelIdxList));
+            CCc.AreaAverage = mean(CCc.Areas);
+            
             nuclei_in_cytoplasm = CCc.NumObjects;
-            
-            % # Nuclei in stroma
-            
-            % # Nuclei in cytoplasm
-            
-            % Density nuclei in stroma
-            
-            % Density nuclei in cytoplasm
+            nuclei_in_cytoplasm_average_area = mean(CCc.Areas);
+            nuclei_in_cytoplasm_disorder = 1 / (1 + (std(CCc.Areas) / CCc.AreaAverage));
+      
+            FV = [lumen_area stroma_area cytoplasm_area lumen_stroma_ratio ...
+                nuclei_in_stroma nuclei_in_stroma_average_area nuclei_in_stroma_disorder ...
+                nuclei_in_cytoplasm nuclei_in_cytoplasm_average_area nuclei_in_cytoplasm_disorder];
             
             % Ratio - Gland Area : Lumen Area
-%             gland_lumen_ratio = sum(sum(CI == find(strcmp(PC.Key, 'LUMEN')))) / sum(sum(CI == find(strcmp(PC.Key, 'LUMEN'))));
-            
-           
+%             gland_lumen_ratio = sum(sum(CI == find(strcmp(this.Key, 'LUMEN')))) / sum(sum(CI == find(strcmp(this.Key, 'LUMEN'))));
+            % Gland Area                % Lumen + Cytoplasm/Nuclei not in stroma
+            % Gland Perimeter    
+            % Ratio - Gland Area : Gland Perimeter
+            % Ratio - # Nuclei : Gland Perimeter
             % Total stroma area in tile
             % Average lumen area in tile
             % Average stroma area in tile
@@ -258,7 +305,7 @@ CC.Disorder = 1 / (1 + (std(CC.Areas) / CC.AreaAvg));
             i = 1;
             for h = 1:5
                 for g = 1:5
-                    FV_labels{i} = strcat(this.Key{h}, '-', this.Key{g});
+                    FV_labels{i} = strcat(this.Key{h}, '_', this.Key{g});
                     i = i + 1;
                 end
             end
@@ -267,18 +314,12 @@ CC.Disorder = 1 / (1 + (std(CC.Areas) / CC.AreaAvg));
         
         %%%%%%%%%%%%%%%%%% % Returns cell array of labels for traditional features
         % Feature Labels % 
-        %%%%%%%%%%%%%%%%%%
-        function FV_labels = GetCFeatureLabels(this)
-            
-            FV_labels = cell(1,25); % Pre-allocate cell array
-            
-            i = 1;
-            for h = 1:5
-                for g = 1:5
-                    FV_labels{i} = strcat(this.Key{h}, '-', this.Key{g});
-                    i = i + 1;
-                end
-            end
+        %%%%%%%%%%%%%%%%%% % hard-coded (dur)
+        function FV_labels = GetShapeFeatureLabels(this)
+          
+            FV_labels = {'lumen_area' 'stroma_area' 'cytoplasm_area' 'lumen_stroma_ratio' ...
+                'nuclei_in_stroma' 'nuclei_in_stroma_average_area' 'nuclei_in_stroma_disorder' ...
+                'nuclei_in_cytoplasm' 'nuclei_in_cytoplasm_average_area' 'nuclei_in_cytoplasm_disorder'};
             
         end 
     end

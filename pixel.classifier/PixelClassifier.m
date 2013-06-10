@@ -1,7 +1,7 @@
 classdef PixelClassifier
   
     properties(GetAccess = public, SetAccess = private);
-        Filepath,
+        ModelFilepath,
         Model,
         ClassIndexImage,
         Key = {'LUMEN', 'STROMA', 'CYTOPLASM', 'NUCLEI', 'INFLAMMATION', 'FIXATIVE', 'INTRALUMINAL'}
@@ -16,7 +16,7 @@ classdef PixelClassifier
             
             filepath = 'models/NB-PixelClassifier.LAB.ind.mat';
             
-            this.Filepath = filepath;
+            this.ModelFilepath = filepath;
             
             loaded = load(filepath);
             this.Model = loaded.NB;
@@ -150,10 +150,19 @@ classdef PixelClassifier
         %%%%%%%%%%%%%%%%%%%%%%%%% %       
         function [FV HIST] = GetShapeFeatures(this, CI)
            
-            Pc = this.GetProcessedMask(CI, 'CYTOPLASM');    %
-            Pn = this.GetProcessedMask(CI, 'NUCLEI');       %  This assumes that the input CI is the base classified image not the processed one. Rectify.
-            Ps = this.GetProcessedMask(CI, 'STROMA');       %  
-
+            % Initially used just the processed classified masks, but
+            % switching to fully processed image
+%             Pc = this.GetProcessedMask(CI, 'CYTOPLASM');    %
+%             Pn = this.GetProcessedMask(CI, 'NUCLEI');       %  This assumes that the input CI is the base classified image not the processed one. Rectify.
+%             Ps = this.GetProcessedMask(CI, 'STROMA');       %  
+            
+            PI = this.ProcessImage(CI);
+            
+            % Uses indices of Key properties
+            Pc = PI == find(strcmp(this.Key, 'CYTOPLASM'));
+            Pn = PI == find(strcmp(this.Key, 'NUCLEI'));
+            Ps = PI == find(strcmp(this.Key, 'STROMA'));
+            
             [X Y] = size(CI);
             
             % Simpler than using imhist .. 
@@ -161,7 +170,6 @@ classdef PixelClassifier
             for h = 1:5
                 HIST(h) = sum(sum(CI(:) == (h)));
             end
-            
             
             % Lumen Area (as ratio of entire tile)
             lumen_area = HIST(strcmp(this.Key, 'LUMEN')) / (X * Y); 
@@ -176,7 +184,8 @@ classdef PixelClassifier
             lumen_stroma_ratio = HIST(strcmp(this.Key, 'LUMEN')) / HIST(strcmp(this.Key, 'STROMA'));
             
             % # Nuclei in stroma
-            Ns = Pn & Ps;               % STROMA ^ NUCLEI
+            
+            Ns = Pn & imfill(imdilate(Ps, strel('disk', 2)) , 8, 'holes');               % STROMA ^ NUCLEI
             Ns = bwareaopen(Ns, 50);    % Remove small areas
             
             CCs = bwconncomp(Ns);
@@ -188,8 +197,9 @@ classdef PixelClassifier
             nuclei_in_stroma_disorder = 1 / (1 + (std(CCs.Areas) / CCs.AreaAverage));
            
             % # Nuclei in cytoplasm
-            Nc = Pn & Pc;               % CYTOPLASM ^ NUCLEI
-            Nc = bwareaopen(Nc, 50);    % Remove small areas
+            Nc = Pn & imfill(imdilate(Pc, strel('disk', 2)) , 8, 'holes');               % CYTOPLASM ^ NUCLEI
+            Nc = bwareaopen(Nc, 100);    % Remove small areas
+            Nc = imfill(Nc, 8, 'holes');
             
             CCc = bwconncomp(Nc);
             CCc.Areas = mean(cellfun(@length, CCc.PixelIdxList));
