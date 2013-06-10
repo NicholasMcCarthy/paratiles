@@ -77,8 +77,8 @@ check_distances_vector = @(x) isscalar(x) || isvector(x);                  % Che
 
 p = inputParser;
 p.addRequired('Image', check_image_dimensions);             % Must input an image
-p.addOptional('NumLevels', 256, check_numlevels_vector);    % Defaults to GLCM with 256 bins
-p.addOptional('Distances', 1, check_distances_vector);      % Defaults to pixel distance 1
+p.addParamValue('NumLevels', 256, check_numlevels_vector);    % Defaults to GLCM with 256 bins
+p.addParamValue('Distances', 1, check_distances_vector);      % Defaults to pixel distance 1
 
 p.parse(varargin{:});                                       % Parse the results
 

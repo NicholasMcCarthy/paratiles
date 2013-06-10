@@ -163,65 +163,89 @@ classdef PixelClassifier
             Pn = PI == find(strcmp(this.Key, 'NUCLEI'));
             Ps = PI == find(strcmp(this.Key, 'STROMA'));
             
-            [X Y] = size(CI);
+            [X Y] = size(PI);
             
             % Simpler than using imhist .. 
             HIST = zeros(1, 5);
             for h = 1:5
-                HIST(h) = sum(sum(CI(:) == (h)));
+                HIST(h) = sum(sum(PI(:) == (h)));
             end
             
-            % Lumen Area (as ratio of entire tile)
+            % Area features
             lumen_area = HIST(strcmp(this.Key, 'LUMEN')) / (X * Y); 
-            
-            % Stroma Area
             stroma_area = HIST(strcmp(this.Key, 'STROMA')) / (X * Y); 
-            
-            % Cytoplasm Area
             cytoplasm_area = HIST(strcmp(this.Key, 'CYTOPLASM')) / (X * Y); 
             
-             % Lumen/stroma ratio
+             % Ratio features
             lumen_stroma_ratio = HIST(strcmp(this.Key, 'LUMEN')) / HIST(strcmp(this.Key, 'STROMA'));
+            lumen_cytoplasm_ratio = HIST(strcmp(this.Key, 'LUMEN')) / HIST(strcmp(this.Key, 'CYTOPLASM'));
+            stroma_cytoplasm_ratio = HIST(strcmp(this.Key, 'STROMA')) / HIST(strcmp(this.Key, 'CYTOPLASM'));
             
-            % # Nuclei in stroma
+            
+            % # Nuclei in stroma features
             
             Ns = Pn & imfill(imdilate(Ps, strel('disk', 2)) , 8, 'holes');               % STROMA ^ NUCLEI
             Ns = bwareaopen(Ns, 50);    % Remove small areas
             
-            CCs = bwconncomp(Ns);
-            CCs.Areas = mean(cellfun(@length, CCs.PixelIdxList));
-            CCs.AreaAverage = mean(CCs.Areas);
             
-            nuclei_in_stroma = CCs.NumObjects;
-            nuclei_in_stroma_average_area = mean(CCs.Areas);
-            nuclei_in_stroma_disorder = 1 / (1 + (std(CCs.Areas) / CCs.AreaAverage));
+            CCs = bwconncomp(Ns);                                       % Get connected components (i.e. nuclei)
+            
+            CCs.AverageArea = mean(cellfun(@length, CCs.PixelIdxList));       % Get areas of each components
+            CCs.StdDev = std(cellfun(@length, CCs.PixelIdxList));              % Standard deviation of areas
+                                
+            if (isnan(CCs.AverageArea))                                       % If there are no CCs, account for NaN values
+                CCs.AverageArea = 0;
+            end
+            
+            if(isnan(CCs.StdDev))
+                CCs.StdDev = 0;
+            end
+            
+            nuclei_in_stroma = CCs.NumObjects;                                      % Number of nuclei 
+            nuclei_in_stroma_average_area = CCs.AverageArea;                        % Average area of nuclei
+            nuclei_in_stroma_disorder = 1 / (1 + (CCs.StdDev / (1 + CCs.AverageArea)));   % Disorder of nuclei 
            
-            % # Nuclei in cytoplasm
+            
+            % Nuclei in cytoplasm features
+            
             Nc = Pn & imfill(imdilate(Pc, strel('disk', 2)) , 8, 'holes');               % CYTOPLASM ^ NUCLEI
             Nc = bwareaopen(Nc, 100);    % Remove small areas
             Nc = imfill(Nc, 8, 'holes');
             
             CCc = bwconncomp(Nc);
-            CCc.Areas = mean(cellfun(@length, CCc.PixelIdxList));
-            CCc.AreaAverage = mean(CCc.Areas);
+            CCc.AverageArea = mean(cellfun(@length, CCc.PixelIdxList));
+            CCc.StdDev = std(cellfun(@length, CCc.PixelIdxList));              
+            
+            if (isnan(CCc.AverageArea))                                       % If there are no CCs, account for NaN values
+                CCc.AverageArea = 0;
+            end
+            if(isnan(CCc.StdDev))
+                CCc.StdDev = 0;
+            end
             
             nuclei_in_cytoplasm = CCc.NumObjects;
-            nuclei_in_cytoplasm_average_area = mean(CCc.Areas);
-            nuclei_in_cytoplasm_disorder = 1 / (1 + (std(CCc.Areas) / CCc.AreaAverage));
+            nuclei_in_cytoplasm_average_area = CCc.AverageArea;
+            nuclei_in_cytoplasm_disorder = 1 / (1 + (CCc.StdDev / (1 + CCc.AverageArea)));
       
-            FV = [lumen_area stroma_area cytoplasm_area lumen_stroma_ratio ...
+            FV = [lumen_area stroma_area cytoplasm_area ... 
+                lumen_stroma_ratio lumen_cytoplasm_ratio stroma_cytoplasm_ratio ...
                 nuclei_in_stroma nuclei_in_stroma_average_area nuclei_in_stroma_disorder ...
                 nuclei_in_cytoplasm nuclei_in_cytoplasm_average_area nuclei_in_cytoplasm_disorder];
             
-            % Ratio - Gland Area : Lumen Area
-%             gland_lumen_ratio = sum(sum(CI == find(strcmp(this.Key, 'LUMEN')))) / sum(sum(CI == find(strcmp(this.Key, 'LUMEN'))));
-            % Gland Area                % Lumen + Cytoplasm/Nuclei not in stroma
-            % Gland Perimeter    
+            % Gland features (not applicable to tiles, but worth
+            % considering)
+            
+            % A 'gland' is considered to be the lumen, encompassing
+            % cytoplasm and nuclei. i.e. no stroma
+            
+            % Gland Area, Perimeter    
+            % Gland circularity, concavity, convexity
+            % Gland perimeter irregularity
+            % Ratio - Total Gland Area : Gland Lumen Area
+            % Ratio - Gland Cytoplasm : Gland Lumen Area
             % Ratio - Gland Area : Gland Perimeter
-            % Ratio - # Nuclei : Gland Perimeter
-            % Total stroma area in tile
-            % Average lumen area in tile
-            % Average stroma area in tile
+            % # Nuclei in Gland Cytoplasm
+            % # Nuclei : gland perimeter overlap
 
         end
         
@@ -317,6 +341,7 @@ classdef PixelClassifier
         function FV_labels = GetShapeFeatureLabels(this)
           
             FV_labels = {'lumen_area' 'stroma_area' 'cytoplasm_area' 'lumen_stroma_ratio' ...
+                'lumen_cytoplasm_ratio' 'stroma_cytoplasm_ratio' ...
                 'nuclei_in_stroma' 'nuclei_in_stroma_average_area' 'nuclei_in_stroma_disorder' ...
                 'nuclei_in_cytoplasm' 'nuclei_in_cytoplasm_average_area' 'nuclei_in_cytoplasm_disorder'};
             

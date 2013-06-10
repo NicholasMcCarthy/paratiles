@@ -8,61 +8,51 @@
 classdef FeatureExtractor
     
     properties(GetAccess = public, SetAccess = private);
-        Functions,
-        LastImage,
-        LastFeatures
-        % what features can be extracted
-        
+        Functions,      % Function handles
+        Features,       % Labels for features
+        LastImage,      % Last image from which features were extracted
+        LastFeatures    % Features extracted from last image
     end
-    
     
     methods
         
-        function this = FeatureExtractor(varargin)
+        function this = FeatureExtractor(functions, labels)
             
-               
-            % Validate inputs are function handles .. 
-            cellfun(@(x) validateattributes(x, {'function_handle'}, {'row'}), varargin)
+            if(iscell(functions))
+                cellfun(@(x) validateattributes(x, {'function_handle'}, {'scalar'}), functions);
+                this.Functions = functions;
+            else 
+                validateattributes(functions, {'function_handle'}, {'scalar'});
+                this.Functions = { functions };
+            end
             
-            this.Functions = varargin';
             
-%           this.Features.Labels = {};
-%           this.LastImage = '';
+            validateattributes(labels, {'cell'}, {'vector'});
+            
+            this.Features = labels;
+            this.LastImage = zeros;
             this.LastFeatures = [];
             
         end
         
         function FV = ExtractFeatures(this, I)
            
-            FV = [];
+            validateattributes(I, {'double', 'uint8'}, {'finite'}, 'ExtractFeatures', 'a grayscale image');
             
-            for i = 1:length(this.Functions)
-                
+            FV = zeros(1, length(this.Features));       % Pre-allocate feature vector  by length of feature labels
+            idx = 1;                                    % idx counter
+            
+            for i = 1:length(this.Functions)            % For each function in this feature extractor
+                loop_fv = feval(this.Functions{i}, I);  % extract features from I using that function
+                FV(idx:idx+length(loop_fv)-1) = loop_fv;  % assign them to FV 
+                idx = idx + length(loop_fv);            % increment idx counter
             end
+            
+            this.LastImage = I;                         % Keep last image
+            this.LastFeatures = FV;                     % And extracted features .. Just in case
             
         end
-        
-        function SetFeatures(this, varargin)
-           
-%             p = inputParser;
-            
-%             hl = {'Haralick', [1 2 3], [4 5 6], 2}
-%             gab = {'Gabor', [7/8*pi, pi/2], [0.5 1 2]};
-%              
-            
-            % Features are set in cell arrays, with the first being the
-            % name of the feature type
-            
-            if nargin < 2
-                error('No input arguments!');
-            end
-         
-        
-            
-            
-        end % function end
-        
-    
+      
     end
     
 end

@@ -36,12 +36,74 @@ disp('Ready!');
 % load '../datasets/256/class_labels_summary.mat'
 %% USING FEATUREEXTRACTOR 
 
-clear FE; FE = FeatureExtractor()
+clear FE;
 
-haralick1 = @(I) extract_haralick_features(I, 1, 8);
+%% FeatureExtractor using 1 feature on grayscale image
+
+clear FE;
+
+gs_image = imread('pout.tif');          % The image to extract features from
+
+FE = FeatureExtractor(@(x) mean(mean(x)), {'mean'}); % Creating the FeatureExtractor object
+
+FV = FE.ExtractFeatures(gs_image);              % Extracting features
+
+mydataset = mymat2dataset(FV, FE.Features)       % Converting features and labels to dataset (for viewing)
+
+%% FeatureExtractor using 3 features on RGB image
+
+clear FE;
+
+rgb_image = imread('hestain.png');
+
+func1 = @(x) mean(mean(mean(x)));
+func2 = @(x) min(min(min(x)));
+func3 = @(x) max(max(max(x)));
+
+funcs = {func1, func2, func3};
+labels = {'mean', 'min', 'max'};
+
+FE = FeatureExtractor(funcs, labels);
+
+FV = FE.ExtractFeatures(rgb_image);
+
+mydataset = mymat2dataset(FV, labels)
+
+%% FeatureExtractor using many Haralick features 
+
+clear FE;
+rgb_image = imread('hestain.png');
+
+distances = [1 2 4];
+numlevels = [8 16 32];
+
+haralick_func = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
+labels = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'UseStrings', true);
+
+FE = FeatureExtractor(haralick_func, labels);
+
+FV = FE.ExtractFeatures(rgb_image);
+
+mydataset = mymat2dataset(FV, labels)
+
+
+%% FeatureExtractor using Haralick + Channel Statistics features
+
+
+
+%% FeatureExtractor using Haralick + CICM features
+
+
+%% FeatureExtractor + blockproc
+
+
+
+
+%%
 haralick2 = @(I) extract_haralick_features(I, [2 4], [8 16 32]);
+labels2 = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', [2 4], 'Distances', [8 16 32]);
 
-FE1 = FeatureExtractor(haralick1);
+FE1 = FeatureExtractor({haralick1}, labels1);
 FE2=  FeatureExtractor(haralick2);
 FE3 = FeatureExtractor(haralick1, haralick2);
 

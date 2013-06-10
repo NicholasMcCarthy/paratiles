@@ -10,9 +10,9 @@ function label_vector = label_haralick_features( varargin )
 
 inputs = ParseInputs(varargin{:});
 
-%% 
+%% Build cell array of labels for specified Haralick parameters
 
-label_vector = cell(1,inputs.NumGLCMs*13);
+label_vector = cell(1,inputs.NumGLCMs*15);
 
 c = 1;                                                  % feature_matrix row index
 
@@ -23,7 +23,8 @@ else
     L = 1:15;
 end
 
-
+% Labels generated in this order because it will be done the same way in
+% extract_haralick_features function
 for z = inputs.Channels;                                % For each specified channel
     for nl = inputs.NumLevels                       % For each specified quantization
         for d = inputs.Distances                            % For each specified distance
@@ -50,16 +51,20 @@ end
 
 function PI = ParseInputs(varargin)
 
-% Anonymous functions for parser
+% Workaround for having a required value with paramvalue 
+if (~strcmpi(varargin{1}, 'channels')) 
+    error('label_haralick_features::Must supply a channels arguments');
+end
 
+% Anonymous functions for parser
 check_scalar_vector = @(x) isscalar(x) || isvector(x);
 check_use_strings = @(x) islogical(x);
 
 p = inputParser;
-p.addRequired('Channels', @iscellstr);      
-p.addOptional('NumLevels', 256, check_scalar_vector);    % Defaults to GLCM with 256 bins
-p.addOptional('Distances', 1, check_scalar_vector);      % Defaults to pixel distance 1
-p.addOptional('UseStrings', false, check_use_strings);   % Can output string values for each feature
+p.addParamValue('Channels', 'I', @iscellstr);              % 
+p.addParamValue('NumLevels', 256, check_scalar_vector);    % Defaults to GLCM with 256 bins
+p.addParamValue('Distances', 1, check_scalar_vector);      % Defaults to pixel distance 1
+p.addParamValue('UseStrings', false, check_use_strings);   % Can output string values for each feature
 
 p.parse(varargin{:});                                       % Parse the results
 
