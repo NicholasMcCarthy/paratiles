@@ -56,7 +56,7 @@ clear FE;
 
 rgb_image = imread('hestain.png');
 
-func1 = @(x) mean(mean(mean(x)));
+func1 = @(x) mean(mean(mean(x)));  % 3 means to get mean pixel value in all 3 channels .. (dumb example)
 func2 = @(x) min(min(min(x)));
 func3 = @(x) max(max(max(x)));
 
@@ -89,59 +89,104 @@ mydataset = mymat2dataset(FV, labels)
 
 %% FeatureExtractor using Haralick + Channel Statistics features
 
+clear FE;
+rgb_image = imread('hestain.png');
+
+distances = [1 2 4];
+numlevels = [8 16 32];
+
+haralick_func = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
+haralick_labels = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'UseStrings', true);
+
+histogram_func = @(I) extract_histogram_features(I, 'NumLevels', numlevels); % same numlevels as haralick features
+histogram_labels = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'UseStrings', true);
+
+functions = {haralick_func histogram_func};
+labels = {haralick_labels{:} histogram_labels{:}};
+
+FE = FeatureExtractor(functions, labels);
+
+FV = FE.ExtractFeatures(rgb_image);
+
+mydataset = mymat2dataset(FV, labels)
 
 
-%% FeatureExtractor using Haralick + CICM features
+%% FeatureExtractor using Haralick + CICM + Histogram features
+
+clear FE;
+rgb_image = imread('hestain.png');
+
+distances = [1 2 4 8];
+numlevels = [16 32 64];
+
+haralick_func = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
+haralick_labels = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'UseStrings', true);
+
+% PC = PixelClassifer; % Should move this to the same path .. 
+cicm_func = @(I) PC.GetAllFeatures(I);
+cicm_labels = PC.GetAllFeatureLabels;
+
+histogram_func = @(I) extract_histogram_features(I, 'NumLevels', numlevels); % same numlevels as haralick features
+histogram_labels = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'UseStrings', true);
+
+functions = {haralick_func cicm_func histogram_func};
+labels = {haralick_labels{:} cicm_labels{:} histogram_labels{:}};
+
+FE = FeatureExtractor(functions, labels);
+
+FV = FE.ExtractFeatures(rgb_image);
+
+mydataset = mymat2dataset(FV, labels)
 
 
 %% FeatureExtractor + blockproc
 
 
+% SETTING UP IMAGE 
+
+clear FE;
+rgb_image = imread('hestain.png');
+rgb_image = repmat(rgb_image, 10);  % Make the image a lot bigger, just for funsies
+
+% SET FUNCTION PARAMETERS (HARALICK AND HISTOGRAM FEATURES)
+
+distances = [1 2 4 8];
+numlevels = [16 32 64];
+
+% CREATE FUNCTION HANDLES AND CORRESPONDING LABEL VECTORS
+
+haralick_func = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
+haralick_labels = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'UseStrings', true);
+
+% PC = PixelClassifer; % Should move this to the same path .. 
+cicm_func = @(I) PC.GetAllFeatures(I);
+cicm_labels = PC.GetAllFeatureLabels;
+
+histogram_func = @(I) extract_histogram_features(I, 'NumLevels', numlevels); % same numlevels as haralick features
+histogram_labels = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'UseStrings', true);
 
 
-%%
-haralick2 = @(I) extract_haralick_features(I, [2 4], [8 16 32]);
-labels2 = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', [2 4], 'Distances', [8 16 32]);
+% CREATE FEATUREEXTRACTOR OBJECT
 
-FE1 = FeatureExtractor({haralick1}, labels1);
-FE2=  FeatureExtractor(haralick2);
-FE3 = FeatureExtractor(haralick1, haralick2);
+functions = {haralick_func cicm_func histogram_func};
+labels = {haralick_labels{:} cicm_labels{:} histogram_labels{:}};
 
-%% EXTRACT HARALICK FEATURES
+FE = FeatureExtractor(functions, labels);
+ 
+% CREATE FEATUREEXTRACTOR HANDLE W/ SHIFTDIM FOR BLOCKPROC 
+func_fe1 = @(block_struct) shiftdim(FE.ExtractFeatures(block_struct.data), -1); 
+func_fe2 = FE.BlockProcHandle;
 
-numlevels = [8 16 32 64];       % Quantization levels for GLCM 
-distances = [1 2 4 8];          % Pixel distances for GLCM
+tilesize = 256;
 
-% Generate column headers for haralick features using same arguments
-feature_labels = label_haralick_features({'R', 'G', 'B'}, numlevels, distances); 
+fv1 = blockproc(rgb_image, [tilesize tilesize], func_fe1);  
+fv1 = reshape(fv, size(fv, 1) * size(fv, 2), size(fv, 3)); % Previous examples just had single rows returned, this is a matrix so requires reshaping
+mydataset1 = mymat2dataset(fv, labels); % FE.Features or labels 
 
-% Call to haralick function. Shiftdim to move features into 3rd dim
-func_haralick = @(block_struct) shiftdim(extract_haralick_features(block_struct.data, numlevels, distances), -1)
+fv2 = blockproc(rgb_image, [tilesize tilesize], func_fe2);  
+fv2 = reshape(fv, size(fv, 1) * size(fv, 2), size(fv, 3)); % Previous examples just had single rows returned, this is a matrix so requires reshaping
+mydataset2 = mymat2dataset(fv, labels); % FE.Features or labels 
 
-fresults = struct();
-
-for i = 1:20 %length(images); % Last image and mask need to be added and processed
-   
-    image_filepath = strcat(env.image_dir, data.images(i).name);
-    mask_filepath = strcat(env.image_dir, data.masks(i).name);
-
-    disp(image_filepath);
-    G = blockproc(image_filepath, image_tilesize, func_haralick, 'PadPartialBlocks', true); 
-    
-    [X Y Z] = size(G);       % Get image feature vector dimensions ..
-    
-    G = reshape(G, X*Y, Z);  % Reshape to feature vector format .. 
-    
-    fresults(i).image = image_filepath;
-    fresults(i).rows = G;
-    toc
-end
-
-% Generate column headers for haralick features using same arguments
-feature_labels = label_haralick_features({'GS'}, numlevels, distances); 
-
-
-% Create dataset object
 
 %% Extracting Haralick Features
 
@@ -174,26 +219,7 @@ feature_labels = label_haralick_features({'GS'}, numlevels, distances);
 % mydataset = mymat2dataset(fv, fv_labels);
 
 
-%% EXTRACT SHAPE / CICM FEATURES
-
-PC = PixelClassifier();         % PixelClassifier class
-
-image_path = strcat(pwd, '/test_rgb_image.jpeg'); % Features won't make any sense with this image, but here goes
-I = imread(image_path);                        
-tilesize = 16;
-numlevels = [8 16 32 64];
-distances = [1 2 4 8];
- 
-func_cicm = @(block_struct) shiftdim(PC.GetAllFeatures(block_struct.data), -1); 
- 
-fv = blockproc(I, [tilesize tilesize], func_cicm);  % image_path not working here ??
-
-fv = reshape(fv, size(fv, 1) * size(fv, 2), size(fv, 3));   % reshape the matrix returned from blockproc to a feature vector form
- 
-fv_labels = PC.GetAllFeatureLabels(); 
- 
-mydataset = mymat2dataset(fv, fv_labels);
-
+%
 
 %% EXTRACT GABOR FEATURES
 

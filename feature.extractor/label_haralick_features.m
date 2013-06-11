@@ -14,14 +14,14 @@ inputs = ParseInputs(varargin{:});
 
 label_vector = cell(1,inputs.NumGLCMs*15);
 
-c = 1;                                                  % feature_matrix row index
-
 if inputs.UseStrings
     L = {'energy', 'contrast', 'corr', 'sumofvar', 'idm', 'sumavg', 'sumvar', 'sument', ...
         'entropy', 'diffvar', 'diffent', 'infocorr1', 'infocorr2', 'cshad', 'cprom'};
 else
     L = 1:15;
 end
+
+c = 1;                                                  % feature_matrix row index
 
 % Labels generated in this order because it will be done the same way in
 % extract_haralick_features function

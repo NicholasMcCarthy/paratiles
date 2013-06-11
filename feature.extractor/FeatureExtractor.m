@@ -3,6 +3,8 @@
 %      Haralick GLCM features (+ parameters)
 %      Gabor filters (+ parameters)
 %      CICM features (+ model)
+% 
+%   Input: function handle or cellarray of function handles. 
 %      
 
 classdef FeatureExtractor
@@ -50,6 +52,13 @@ classdef FeatureExtractor
             
             this.LastImage = I;                         % Keep last image
             this.LastFeatures = FV;                     % And extracted features .. Just in case
+            
+        end
+        
+        
+        function func_handle = BlockProcHandle(this);
+           
+            func_handle = @(block_struct) shiftdim(this.ExtractFeatures(block_struct.data), -1);
             
         end
       

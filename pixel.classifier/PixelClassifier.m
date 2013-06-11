@@ -181,6 +181,17 @@ classdef PixelClassifier
             lumen_cytoplasm_ratio = HIST(strcmp(this.Key, 'LUMEN')) / HIST(strcmp(this.Key, 'CYTOPLASM'));
             stroma_cytoplasm_ratio = HIST(strcmp(this.Key, 'STROMA')) / HIST(strcmp(this.Key, 'CYTOPLASM'));
             
+            if (isnan(lumen_stroma_ratio)) | isinf(lumen_stroma_ratio))
+                lumen_stroma_ratio = 0;
+            end
+            
+            if (isnan(lumen_cytoplasm_ratio)) | isinf(lumen_cytoplasm_ratio))
+                lumen_cytoplasm_ratio = 0;
+            end
+            
+            if (isnan(stroma_cytoplasm_ratio)) | isinf(stroma_cytoplasm_ratio))
+                stroma_cytoplasm_ratio = 0;
+            end
             
             % # Nuclei in stroma features
             

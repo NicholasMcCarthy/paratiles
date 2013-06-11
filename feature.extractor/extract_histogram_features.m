@@ -41,7 +41,7 @@ check_numlevels_vector = @(x) isscalar(x) || isvector(x);   % Checks if 'NumLeve
 
 p = inputParser;
 p.addRequired('Image', check_image_dimensions);             % Must input an image
-p.addOptional('NumLevels', 256, check_numlevels_vector);    % Defaults to 256 bins
+p.addParamValue('NumLevels', 256, check_numlevels_vector);    % Defaults to 256 bins
 
 p.parse(varargin{:});                                       % Parse the results
 
