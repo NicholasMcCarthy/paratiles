@@ -97,16 +97,13 @@ classdef PixelClassifier
             
             CI_labels = this.GetCICMFeatureLabels();
             
-            PI_labels = this.GetCICMFeatureLabels();
-            
             % Add P_ to start of features from processed image
-            PI_labels = cellfun(@(x) strcat('P_', x), PI_labels, 'UniformOutput', false);
+            PI_labels = cellfun(@(x) strcat('P_', x), CI_labels, 'UniformOutput', false);
            
-            
             shape_labels = this.GetShapeFeatureLabels();
             
             FV_labels = [CI_labels PI_labels shape_labels];
-            
+                        
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image
@@ -181,15 +178,15 @@ classdef PixelClassifier
             lumen_cytoplasm_ratio = HIST(strcmp(this.Key, 'LUMEN')) / HIST(strcmp(this.Key, 'CYTOPLASM'));
             stroma_cytoplasm_ratio = HIST(strcmp(this.Key, 'STROMA')) / HIST(strcmp(this.Key, 'CYTOPLASM'));
             
-            if (isnan(lumen_stroma_ratio)) | isinf(lumen_stroma_ratio))
+            if isnan(lumen_stroma_ratio) || isinf(lumen_stroma_ratio)
                 lumen_stroma_ratio = 0;
             end
             
-            if (isnan(lumen_cytoplasm_ratio)) | isinf(lumen_cytoplasm_ratio))
+            if isnan(lumen_cytoplasm_ratio) || isinf(lumen_cytoplasm_ratio)
                 lumen_cytoplasm_ratio = 0;
             end
             
-            if (isnan(stroma_cytoplasm_ratio)) | isinf(stroma_cytoplasm_ratio))
+            if isnan(stroma_cytoplasm_ratio) || isinf(stroma_cytoplasm_ratio)
                 stroma_cytoplasm_ratio = 0;
             end
             

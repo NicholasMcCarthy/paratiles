@@ -47,3 +47,26 @@ p.parse(varargin{:});                                       % Parse the results
 
 PI = p.Results;
 
+%% Roughwork
+% Comparing performance of two methods for generating histogram
+
+numlevels = 16;
+
+I = uint8(rand(1000,1000) * 255);
+
+tic
+for i = 1:100;
+    A = histogram_features_opt(I, 'NumLevels', numlevels);
+    
+end
+toc    
+
+tic
+for i = 1:100;
+    B = histogram_features(I, 'NumLevels', numlevels);
+   
+end
+toc
+
+abs(A-B)
+    

@@ -89,5 +89,3 @@ PI.Image = p.Results.Image;
 PI.Distances = p.Results.Distances;
 PI.NumLevels = p.Results.NumLevels;
 PI.NumGLCMs = NumGLCMs;
-
-

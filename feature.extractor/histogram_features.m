@@ -19,13 +19,16 @@ function stats = histogram_features( varargin )
 %----------
 % Author:
 % -----------
-%     Nick McCarthy <nicholas.mccarthy@gmail.com>
-%       University College Dublin, Complex and Adaptive Systems Laboratory
-%   
-%       Expanding on :
 %    (C)Xunkai Wei <xunkai.wei@gmail.com>
 %    Beijing Aeronautical Technology Research Center
 %    Beijing %9203-12,10076
+% 
+% ------------
+% Updated by:
+% ------------
+%     Nick McCarthy <nicholas.mccarthy@gmail.com>
+%       University College Dublin, Complex and Adaptive Systems Laboratory
+%   
 %
 
 % Parameter checking
@@ -54,17 +57,26 @@ s = size(SI);
 Gray_vector = 1:NL;
 % intialize parameters
 Histogram = zeros(1,NL);
+
+% Note: Switched this loop to use sum(sum()) as it is about twice as fast 
+%       as using numel + find - NM
+
 % Using inline function numel, make it easy
-for i =1:NL
-    Histogram(i) = numel(find(SI==i));
+% for i =1:NL
+%     Histogram(i) = numel(find(SI==i));
+% end
+
+for i = 1:NL
+    Histogram(i) = sum(sum(SI==i));
 end
+
 %--------------------------------------------------------------------------
 % 2. Now calculate its histogram statistics
 %--------------------------------------------------------------------------
 % Calculate obtains the approximate probability density of occurrence of the intensity
 % levels
 
-Prob                = Histogram./(s(1)*s(2));
+Prob                = Histogram./(s(1)*s(2));  % Histogram to probability mass function
 % Return values
 Minimum             = min(min(SI));
 
@@ -72,7 +84,12 @@ Mean                = sum(Prob.*Gray_vector);
 
 Maximum             = max(max(SI));
 
-StdDev              = std(std(SI));
+% This calculates stddev incorrectly, replacing it. - NM
+% StdDev              = std(std(SI));
+StdDev              = std(SI(:)) ;
+
+% An alternative (slower) 
+% StdDev             = sqrt(mean2(arrayfun(@(x) abs(x - Mean)^2, SI)));
 
 Variance            = sum(Prob.*(Gray_vector-Mean).^2);
 
@@ -84,7 +101,7 @@ Energy              = sum(Prob.*Prob);
 
 % Entropy             = -sum(Prob.*log(Prob)); 
 % log(0) = -Inf       % Causes a NaN error when summing Entropy value
-% Replacing with code below, which ignores NaN values
+% Replacing with code below, which ignores NaN values - NM
 
 En                  = Prob.*log(Prob);
 Entropy             = -sum(En(~isnan(En)));

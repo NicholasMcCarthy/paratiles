@@ -9,8 +9,8 @@
 %--------
 % Sets env vars, any other odds and ends
 
-[data.images data.masks ] = get_image_files(env.image_dir); % env should be declared ..
-
+data.images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.');
+data.masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
 %% Init
 %------

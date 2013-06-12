@@ -39,13 +39,18 @@ for z = inputs.Channels;                                % For each specified cha
                     i = strcat('f', num2str(l));
                 end
                 
-                label_vector{c} = strcat(label, i);  % Extract features and add to feature_matrix
+                label_vector{c} = char(strcat(label, i));  % Extract features and add to feature_matrix
 
                 c = c + 1;
             end
             
         end
     end
+end
+
+% Prepend prefix if one is specified
+if ~isempty(inputs.Prefix)
+    label_vector = cellfun(@(x) strcat(inputs.Prefix, '_', x), label_vector, 'UniformOutput', false);
 end
 
 
@@ -65,6 +70,7 @@ p.addParamValue('Channels', 'I', @iscellstr);              %
 p.addParamValue('NumLevels', 256, check_scalar_vector);    % Defaults to GLCM with 256 bins
 p.addParamValue('Distances', 1, check_scalar_vector);      % Defaults to pixel distance 1
 p.addParamValue('UseStrings', false, check_use_strings);   % Can output string values for each feature
+p.addParamValue('Prefix', '', @ischar);                    % Will prepend this prefix to any output labels
 
 p.parse(varargin{:});                                       % Parse the results
 
@@ -75,6 +81,7 @@ PI.Channels = p.Results.Channels;
 PI.Distances = p.Results.Distances;
 PI.NumLevels = p.Results.NumLevels;
 PI.UseStrings = p.Results.UseStrings;
+PI.Prefix = p.Results.Prefix;
 PI.NumGLCMs = NumGLCMs;
 
 
