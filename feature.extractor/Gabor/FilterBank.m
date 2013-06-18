@@ -8,12 +8,12 @@ classdef FilterBank <handle
     properties(Access = 'public')
         MatrixSize = 17; %always scalar!
         
-		Scales = [2, 4, 8, 16];
+		Scales = [2, 4, 8];
         
 		%Orientations = [pi/6, 2*pi/6, 4*pi/6, 5*pi/6];
-        Orientations = [pi/4, pi/2, 3*pi/4, pi];                % 45, 90, 135, 180
+        Orientations = [pi/4 ]% , pi/2, 3*pi/4, pi];                % 45, 90, 135, 180
         
-        Frequencies = [0.5, 1, 2];
+        Frequencies = [0.5, 2];
         
         CenterPoints = [9 9]; %int type (eg. [5 5; 13 13])
         

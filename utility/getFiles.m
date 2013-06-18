@@ -8,7 +8,7 @@ function fileList = getFiles(varargin)
 
 p = inputParser;
 
-p.addRequired('Directory', @(x) exist(x, 'dir'))
+p.addRequired('Directory', @(x) exist(x, 'dir') ~= 0)
 p.addParamValue('Suffix', [], @(x)ischar(x));
 p.addParamValue('Wildcard', [], @(x)ischar(x));
 p.addParamValue('Exclude', [], @(x)ischar(x));

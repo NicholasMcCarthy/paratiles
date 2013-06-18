@@ -3,7 +3,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Get list of images in test_images folder
-test_images = getFiles( strcat(pwd, '/test.images') , 'Suffix', '.tif');
+test_images = getFiles( strcat(pwd, '\test.images') , 'Suffix', '.tif');
 
 % Create the Pixel Classifier object
 clear PC;
@@ -276,7 +276,7 @@ subplot(326), imshow(Ns), title('Nuclei within Stroma');
 %% Comparing base classified and processed classified images
 clear PC; PC = PixelClassifier();
 
-I = imread(cell2mat(test_images(4)));
+I = imread(cell2mat(test_images(2)));
 I = I(:,:,1:3); % Account for alpha channel
 
 CI = PC.ClassifyImage(I);
@@ -294,6 +294,7 @@ Pn = PC.GetProcessedMask(CI, 'NUCLEI');       % Get Logical image of nuclei loca
 Pi = PC.GetProcessedMask(CI, 'INFLAMMATION'); % Get Logical image of inflammation locations <- 
 
 figure;
+
 subplot(6,2,1), imshow(I);
 subplot(6,2,2), imshow(CI*(255/5));
 
@@ -317,7 +318,7 @@ subplot(6,2,12), imshow(Pi);
 
 clear PC; PC = PixelClassifier();
 
-I = imread(test_images{2});
+I = imread(test_images{5});
 I = I(:,:,1:3); % Account for alpha channel
 
 CI = PC.ClassifyImage(I);  % Classify I -> CI
@@ -326,7 +327,31 @@ SCI = CI .* (255/5);       % Scale CI
 PI = PC.ProcessImage(CI);  % Process CI -> PI
 SPI = uint8(PI * (255/5)); % Scale PI
 
+cmap = winter(5);
+
+% cmap(2,:) = [ 0.9 1 1];
+% cmap(3,:) = [ 220/255 22/255 154/255];
+% 
+% cmap(4,:) = [ 220/255 122/255 154/255];
+% cmap(5,:) = [ 0 0 0];
+
+
 % figure;
 subplot(131), imshow(I);
-subplot(132), imshow(SCI);
-subplot(133), imshow(SPI);
+subplot(132), imshow(CI, cmap);
+subplot(133), imshow(PI, cmap);
+
+%% Block proc entire image
+
+PC = PixelClassifier();
+
+images = getFiles( env.image_dir , 'Suffix', '.tif', 'Wildcard', '.8.');
+
+imagepath = images{1};
+
+destpath = regexprep(imagepath, '.8.', '.8.CI.');
+
+bpfunc = @(x) PC.ClassifyImage(x.data) ;
+
+blockproc(imagepath, [1024 11024], bpfunc, 'Destination', destpath);
+

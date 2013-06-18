@@ -19,7 +19,6 @@ displayFunction = @(x) surf(x);
 filterBank.ShowFilters([], displayFunction);
 % just put '[]' for default -> eg. filterBank.ShowFilters([], displayFunction);
 
-
 %im = imread('lena.jpg'); im = rgb2gray(im); im = double(im);
 
 %******************Figure 3: Responses - amplitudes (default) ********************

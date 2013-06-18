@@ -3,7 +3,6 @@ classdef PixelClassifier
     properties(GetAccess = public, SetAccess = private);
         ModelFilepath,
         Model,
-        ClassIndexImage,
         Key = {'LUMEN', 'STROMA', 'CYTOPLASM', 'NUCLEI', 'INFLAMMATION', 'FIXATIVE', 'INTRALUMINAL'}
     end
     
