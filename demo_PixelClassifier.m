@@ -100,6 +100,7 @@ for i = 1:length(test_images)
     
 end
 
+
 %% Logical masks of each class
 clear PC; PC = PixelClassifier();
 
@@ -317,7 +318,7 @@ subplot(6,2,12), imshow(Pi);
 
 clear PC; PC = PixelClassifier();
 
-I = imread(test_images{2});
+I = imread(test_images{1});
 I = I(:,:,1:3); % Account for alpha channel
 
 CI = PC.ClassifyImage(I);  % Classify I -> CI
@@ -330,3 +331,62 @@ SPI = uint8(PI * (255/5)); % Scale PI
 subplot(131), imshow(I);
 subplot(132), imshow(SCI);
 subplot(133), imshow(SPI);
+
+
+%% Roughwork
+
+clear PC; PC = PixelClassifier();
+
+selected.images=  [2 5 8 9 10 11 12 15 18];
+
+sz = get(0, 'Screensize');
+mymap = colormap(jet(5));
+
+for i = selected.images
+
+    I = imread(test_images{i});
+    I = I(:,:,1:3);
+    
+    CI = PC.ClassifyImage(I);  % Classify I -> CI
+    SCI = CI .* (255/5);
+    PI = PC.ProcessImage(CI);  % Process CI -> PI
+    SPI = PI .* (255/5);
+    
+    Ll = PC.GetMask(CI, 'LUMEN');
+    Ls = PC.GetMask(CI, 'STROMA');
+    Lc = PC.GetMask(CI, 'CYTOPLASM');
+    
+    
+    PLl = PC.GetProcessedMask(CI, 'LUMEN');
+    PLs = PC.GetProcessedMask(CI, 'STROMA');
+    PLc = PC.GetProcessedMask(CI, 'CYTOPLASM');
+    
+    
+    h = figure('Position', [0 0 round(sz(3)/2) sz(4)]);
+    
+    fig = gcf;
+    
+    subplot(331), imshow(I), title('Base image');
+    axis off;
+    subplot(332), imshow(SCI, mymap), title('Classified Image');
+    axis off;
+    subplot(333), imshow(SPI, mymap), title('Processed Image');
+    axis off;
+    subplot(334), imshow(Ll), title('Lumen logical mask');
+    axis off;
+    subplot(335), imshow(Ls), title('Stroma logical mask');
+    axis off;
+    subplot(336), imshow(Lc), title('Cytoplasm logical mask');
+    axis off;
+    subplot(337), imshow(PLl), title('Processed Lumen logical mask');
+    axis off;
+    subplot(338), imshow(PLs), title('Processed Stroma logical mask');
+    axis off;
+    subplot(339), imshow(PLc), title('Processed Cytoplasm logical mask');
+    axis off;
+
+    saveas(h, strcat('IMAGE_', num2str(i), '.png'));
+    
+    close(h);
+    
+end

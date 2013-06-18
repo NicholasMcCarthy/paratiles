@@ -63,19 +63,20 @@ D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20
 
 %% Histogram feature set
 
-distances = [1 2 4];
 numlevels = [16 32 64];
 
-histogram_func_rgb = @(I) extract_histogram_features(I, 'NumLevels', numlevels); % same numlevels as haralick features
+% RGB Features
+histogram_func_rgb = @(I) extract_histogram_features(I, 'NumLevels', numlevels);
 histogram_labels_rgb = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Prefix', 'rgb', 'UseStrings', true);
 
-% histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', numlevels); % same numlevels as haralick features
-% histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Prefix', 'lab', 'UseStrings', true);
+% CIELab Features
+histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', numlevels);
+histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Prefix', 'lab', 'UseStrings', true);
 
-functions = {histogram_func_rgb histogram_func_lab};
-labels = {histogram_labels_rgb{:} histogram_labels_lab{:}};
+functions = {histogram_func_rgb histogram_func_lab };
+labels = [histogram_labels_rgb histogram_labels_lab];
 
-FE = FeatureExtractor(histogram_func_rgb, histogram_labels_rgb);
+FE = FeatureExtractor(functions, labels);
 
 func_fe = FE.BlockProcHandle;
 
@@ -86,7 +87,7 @@ profile on;
 data = zeros(D_length, length(FE.Features));
 row_idx = 1;
 
-for i = 1 %:length(images)
+for i = 1:length(images)
     
     imagepath = images{i};
     fprintf('Current Image: %s \n', imagepath);
@@ -95,11 +96,15 @@ for i = 1 %:length(images)
     
     FV = reshape(FV, size(FV, 1) * size(FV, 2), size(FV, 3));   
     
-    row_end = row_idx + length(FV)-1;       % End row of new data to be allocated
-    
+    row_end = row_idx + size(FV,1)-1;       % End row of new data to be allocated
+    disp('eh?');
     data(row_idx:row_end ,:) = FV;          % Allocate new data ..
-    
+    disp('bar');
     row_idx = row_idx + length(FV);         % Update row_idx 
+    
+    
+    title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
+    sendmail('nicholas.mccarthy@gmail.com', title, 'Aloha');
     
 end
 
@@ -113,5 +118,6 @@ writeMatrixToCSV(data, FE.Features, output_dir);
 
 %% CLEANUP
 
-sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Test test test test');
+sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Adios');
 
+%%

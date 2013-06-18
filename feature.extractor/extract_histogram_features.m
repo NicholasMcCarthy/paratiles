@@ -19,7 +19,7 @@ c = 1;                                                  % feature_matrix row ind
 for z = 1:size(inputs.Image,3);                         % for each channel in the input image
     for nl = inputs.NumLevels                           % for each NumLevel specified in parameter
         
-        feature_matrix(c,:) = histogram_features(inputs.Image(:,:,z), 'NumLevels', nl);  % Extract features and add to feature_matrix
+        feature_matrix(c,:) = histogram_features_opt(inputs.Image(:,:,z), 'NumLevels', nl);  % Extract features and add to feature_matrix
         
         c = c + 1;
     end
@@ -46,27 +46,4 @@ p.addParamValue('NumLevels', 256, check_numlevels_vector);    % Defaults to 256 
 p.parse(varargin{:});                                       % Parse the results
 
 PI = p.Results;
-
-%% Roughwork
-% Comparing performance of two methods for generating histogram
-
-numlevels = 16;
-
-I = uint8(rand(1000,1000) * 255);
-
-tic
-for i = 1:100;
-    A = histogram_features_opt(I, 'NumLevels', numlevels);
-    
-end
-toc    
-
-tic
-for i = 1:100;
-    B = histogram_features(I, 'NumLevels', numlevels);
    
-end
-toc
-
-abs(A-B)
-    
