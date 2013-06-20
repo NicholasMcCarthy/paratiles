@@ -116,25 +116,35 @@ classdef PixelClassifier
                 HIST(h) = sum(sum(CI(:) == (h)));
             end
             
-%           offsets = [0 1; 1 1 ; 1 0 ; -1 1
+            % Normalize histogram (i.e  PDE)
+            HIST_size = 65536;         % hard-coded to avoid re computing each time
+            HIST = HIST /HIST_size; 
             
-            offsets =  [ 0 1 ; 1 1 ; 1 0 ; -1 1 ];    % Offsets for 0, 45, 90, 135 degree angles
-            graylimits = [1 5];                  % Graylimits and numlevels set so binning doesn't 
-            numlevels = 5;                       % change assigned pixel classes.
+            offsets =  [ 0 1 ; 1 1 ; 1 0 ; -1 1 ];      % Offsets for 0, 45, 90, 135 degree angles
+            graylimits = [1 5];                              % Graylimits and numlevels set so binning doesn't 
+            numlevels = 5;                                  % change assigned pixel classes.
             
              % Dont think symmetric is necessary here but should check both
             glcm = graycomatrix(CI, 'Offset', offsets, 'NumLevels', numlevels, 'GrayLimits', graylimits); 
             
             % Sum matrices for total-adjacency matrix
             GLCM = (glcm(:,:,1) + glcm(:,:,2) + glcm(:,:,3) + glcm(:,:,4));
-
-            % Normalize? NOTE: Unnormalized values should be fine.
+            
+            GLCM_size = 260610;
+            
+            % Normalise GLCM matrix
+            GLCM = GLCM / GLCM_size;
             
             FV = zeros(1, 25); % Preallocate feature vector
             i = 1;
             for h = 1:5
                 for g = 1:5
-                  FV(i) = HIST(h) / ( GLCM(h, g) + 1); % + 1 to account for divide-by-zero error
+                    
+                    if GLCM(h, g) == 0
+                        FV(i) = 0;
+                    else
+                        FV(i) = HIST(h) / ( GLCM(h, g)); % + 1 to account for divide-by-zero error
+                    end
                   i = i+1;
                 end
             end
@@ -270,6 +280,17 @@ classdef PixelClassifier
         end
         
         
+        % Alternate function for getting processed mask
+        % Gets the full processed mask and then converts to logical by
+        % class
+        
+        function pmask = GetPMask(this, img, class)
+            pmask = this.ProcessImage(img);
+            
+            pmask = pmask == find(strcmp(this.Key, class));
+                
+        end
+        
         %%%%%%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image, class (str)
         % Get Processed Class Mask % % Output: Processed binary mask of selected class
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%    
@@ -373,8 +394,6 @@ classdef PixelClassifier
             T = reshape(FV, X, Y, Z);
         end
         
-      
-       
     end
 end
 
