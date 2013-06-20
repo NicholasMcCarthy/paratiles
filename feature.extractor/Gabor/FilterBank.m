@@ -8,12 +8,12 @@ classdef FilterBank <handle
     properties(Access = 'public')
         MatrixSize = 17; %always scalar!
         
-		Scales = [2, 4, 8];
+		Scales = [4 8 16];
         
 		%Orientations = [pi/6, 2*pi/6, 4*pi/6, 5*pi/6];
-        Orientations = [pi/4 ]% , pi/2, 3*pi/4, pi];                % 45, 90, 135, 180
+        Orientations = [pi/4 ]; %, pi/2, 3*pi/4, pi];                % 45, 90, 135, 180
         
-        Frequencies = [0.5, 2];
+        Frequencies = [0.2 0.4 0.6];
         
         CenterPoints = [9 9]; %int type (eg. [5 5; 13 13])
         
@@ -78,7 +78,7 @@ classdef FilterBank <handle
                 
                 subplot(numOfBoxesInCol, numOfBoxesInRow, idxFilter);
                 displayFunction(filterValues);
-                title(strcat( num2str(filterParams.Scale), {'; '}, num2str(filterParams.Frequency), {'; '}, num2str(filterParams.Orientation) ));
+%                 title(strcat( num2str(filterParams.Scale), {'; '}, num2str(filterParams.Frequency), {'; '}, num2str(filterParams.Orientation) ));
             end
             
         end

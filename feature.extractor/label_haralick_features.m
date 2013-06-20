@@ -29,7 +29,7 @@ for z = inputs.Channels;                                % For each specified cha
     for nl = inputs.NumLevels                       % For each specified quantization
         for d = inputs.Distances                            % For each specified distance
 
-            label = strcat(z, '_', num2str(nl), '_', num2str(d), '_');
+            label = strcat(z, '_q', num2str(nl), '_d', num2str(d), '_');
             
             for l = L
                 
