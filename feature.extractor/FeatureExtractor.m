@@ -48,36 +48,27 @@ classdef FeatureExtractor
             validateattributes(I, {'double', 'uint8'}, {'finite'}, 'ExtractFeatures', 'a grayscale image');
             
             FV = zeros(1, length(this.Features));       % Pre-allocate feature vector  by length of feature labels
-            idx = 1;                                    % idx counter
+            idx = 1;                                                  % idx counter
                         
-            if this.ImageIsBlank(I)             % If image is blank (by entropy measure)
-            
-                if ~this.IgnoreBlanks           % and if we're not ignoring blank images
-                
+            if entropy(I) > 3.9                              % If image is not blank (by entropy measure - empirically determined)
+                                          
                     for i = 1:length(this.Functions)                        % For each function in this feature extractor
                         loop_fv = feval(this.Functions{i}, I);             % extract features from I using that function
                         FV(idx:idx+length(loop_fv)-1) = loop_fv;    % assign them to FV 
                         idx = idx + length(loop_fv);                        % increment idx counter
                     end;
                     
-                end;
-                
             end;
             
-            this.LastImage = I;                         % Keep last image
             
-            this.LastFeatures = FV;                     % And extracted features .. Just in case
+%             this.LastImage = I;                         % Keep last image
+%             this.LastFeatures = FV;                     % And extracted features .. Just in case
             
         end
         
         function ret = ImageIsBlank(this, I)
             
-            if (entropy(I) < 3.9)         % determined by experimentation .. 
-                ret = true;
-            else
-                ret  = false;
-            end;
-            
+            ret = entropy(I) < 3.8
             
         end
         
@@ -91,4 +82,3 @@ classdef FeatureExtractor
     end
     
 end
-
