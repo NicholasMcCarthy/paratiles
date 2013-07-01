@@ -129,8 +129,9 @@ for i = 1:length(images)
     data = zeros(numBlocks, length(FE.Features));
     
     % Blockproc
+    tic
     FV = blockproc(imagepath, [tilesize tilesize], func_fe);
-    
+    mytime = toc;
     % Reshape from image to feature vector
     FV = reshape(FV, size(FV, 1) * size(FV, 2), size(FV, 3));   
     
