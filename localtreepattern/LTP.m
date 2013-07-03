@@ -51,3 +51,11 @@ disp('Done');
 % Convert to decimal (will have very large range, possibly unstable) 
 % take 5 classes ..
 % 
+
+%% Comparing decimal values + histogram length for n-ary local patterns
+
+n = 5; % Number of classes
+
+q = (n*(n+1)) /2
+
+

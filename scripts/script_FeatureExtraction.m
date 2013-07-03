@@ -13,7 +13,7 @@
 % Features extracted
 
 % 
-env.temp_dir = '/home/nick/git/paratiles/temp/';
+env.temp_dir = [pwd '\temp\'];
 
 %% SETUP
 
@@ -115,7 +115,7 @@ func_fe = FE.BlockProcHandle;
 
 % row_idx = 1;
    
-for i = 1:length(images)
+for i = 14:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
@@ -146,7 +146,7 @@ for i = 1:length(images)
     message = num2str(any(FV));
     
     title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
-    sendmail('nicholas.mccarthy@gmail.com', title, message);
+%     sendmail('nicholas.mccarthy@gmail.com', title, message);
 
     % save 'data' struct as .mat file on an image by image basis
     matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
