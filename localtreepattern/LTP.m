@@ -1,17 +1,33 @@
-% Local tree pattern  histogram
+%%%%%%%%%%%%%%%%%%
+% Roughwork and notes %
+%%%%%%%%%%%%%%%%%%
 
+% Local tree pattern histogram
 
 % parameterized local pattern histogram
 
 
-% given n classes, 
 
-% Binary pattern search
+%% Binary pattern search
+
 % Tile image I with tiles of size TxT
 % G <- For each pixel p(x,y) in tile T, compare pixel to 8-neighbours (anti) clockwise
     % Vb <- if p(x,y) > p(x',y') write 1 else 0 % e.g. 10010111 
     % Vd <- convert Vb binary number to decimal 
 %
+
+%%  Ternary pattern
+
+% Tile image I with tiles of size TxT
+% Threshold constant k
+% G <- For each pixel p(x,y) in tile T, compare pixel to 8-neighbours (anti) clockwise
+% c = p(x, y) , i.e. intensity value of center pixel
+    % Vb <- if p(x,y) > c + k                                     -> 1
+    % Vb <- if p(x,y) < c + k  && p(x, y) > c - k        -> 0
+    % Vb <- if p(x,y) < c - k                             -> -1
+    % Vd <- convert Vb binary number to decimal 
+%
+
 
 % H <- compute histogram of G values (i.e. Vd)
 % Quantize H to n levels % (say, 32)
@@ -44,10 +60,17 @@ disp('Done');
 % (Optionally normalize H)
 % FV <- Concatenate H for each T in I (heeeeyyy)
 
-% Parameterized n-ary tree pattern search
+%% Parameterized n-ary tree pattern search
 
-% Given n classes
-% will give 8 digit number in base n 
-% Convert to decimal (will have very large range, possibly unstable) 
-% take 5 classes ..
-% 
+% Given n classes and connectivity c (e.g.4, 8)
+% Perform local pattern convolution (filtering? what is the correct term for this .. ) 
+%   - will give 8 or 4 (depending on connectedness) digit number in base n 
+% Convert values decimal (will have very large range, possibly unstable) 
+%   -  Range = [0 n^c ]
+%   -  e.g. 5 classes with 8 connectivity = 0 .. 390625 
+%          - but with binning;
+
+
+
+% take 5 classes .. 
+%   -  

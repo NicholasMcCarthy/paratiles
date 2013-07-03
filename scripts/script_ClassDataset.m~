@@ -1,0 +1,83 @@
+% This script will iterate through a set of images, tile them and determine
+% whether they are within 
+
+% Author: Nicholas McCarthy
+% Date created: 03/07/2013
+
+%% SETUP
+
+images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
+masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
+
+output_dir = [env.image_dir 'class-datasets/']
+
+tilesize = 256;     % Tilesize for 40x image  
+maskts = 16;      % Equivelant tilesize for mask image
+
+% Ensure your local setup allows this ..
+matlabpool local 4;
+
+%% Create multi-level tiffs per class
+
+tiffclasses = {'G3', 'G34' ,'G4', 'G45', 'G5'};
+
+for tc = tiffclasses
+        
+    newtifffilename = [output_dir tc{:} '.tif'];
+    
+    T = Tiff(newtifffilename, 'a');
+    T.setTag('Compression', Tiff.Compression.JPEG);
+    
+    tagstruct.ImageLength = size(result, 2);
+tagstruct.ImageWidth = size(result, 1);
+tagstruct.Photometric = Tiff.Photometric.MinIsBlack;
+tagstruct.SampleFormat = Tiff.SampleFormat.IEEEFP;
+tagstruct.Compression = Tiff.Compression.None;
+tagstruct.BitsPerSample = 32;
+tagstruct.SamplesPerPixel = 1;
+tagstruct.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
+tagstruct.Software = 'MATLAB';
+t.setTag(tagstruct);
+
+    
+end
+
+
+%% Parfor instead of blockproc .. 
+
+% profile on;
+   
+for i = 1:length(images)
+    
+    imagepath = images{i};
+    imageinfo = imfinfo(imagepath);
+    
+    maskpath = masks{i};
+    maskinfo = imfinfo(maskpath);
+    
+    fprintf('Current Image: %s \n', imagepath);
+    
+    % Get number of blocks processed in this image
+    numBlocks = ceil( (imageinfo.Width) / tilesize ) * ceil( (imageinfo.Height) / tilesize);
+    
+    
+    
+    % Concat output_dir with regex replaced filename (8.tif -> PC8.tif) 
+    outputpath = [output_dir regexprep(fliplr(strtok(fliplr(images{1}), '/')), '.8.tif', '.PC8.tif')]   % .. don't ask 
+    fprintf('Current Image: %s \n', imagepath);
+    
+    % Blockproc
+    tic
+    blockproc(imagepath, [tilesize tilesize], cls_image, 'Destination', outputpath);
+    toc
+    
+end
+
+% profile off;
+% profile report;
+
+%% CLEANUP
+
+sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Adios');
+
+%%

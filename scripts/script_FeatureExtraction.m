@@ -115,7 +115,7 @@ func_fe = FE.BlockProcHandle;
 
 % row_idx = 1;
    
-for i = 1:length(images)
+for i = 10:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
