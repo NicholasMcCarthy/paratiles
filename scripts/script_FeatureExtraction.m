@@ -13,16 +13,16 @@
 % Features extracted
 
 % 
-env.temp_dir = '/home/nick/git/paratiles/temp/';
+env.temp_dir = '/home/nick/git/paratiles/temp_HARALICK/';
 
 %% SETUP
 
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
 masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
-WILDCARD = 'fe.CICM'; % date;
+WILDCARD = 'fe.HARALICK'; % date;
 
-output_dir = strcat(env.dataset_dir, WILDCARD, '-', date, '/');
+output_dir = strcat(env.dataset_dir, WILDCARD,  '/');
 
 if ~exist(output_dir, 'dir')        % If no directory for this date
     fprintf('Output directory %s does not exist. Creating it.\n', output_dir);
@@ -64,7 +64,9 @@ D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20
 % 
 
 % Ensure your local setup allows this ..
-matlabpool local 4
+if matlabpool('size') == 0
+    matlabpool local 4
+end
 
 %% Histogram feature set
 
@@ -90,15 +92,10 @@ PC = PixelClassifier;
 cicm_func = @(I) PC.GetAllFeatures(I);
 cicm_labels = lower(PC.GetAllFeatureLabels);
 
+%== SPECIFYING FEATURE EXTRACTION FUNCTIONS ==%
 
-% Entropy check
-entropy_func = @(I) entropy(I);
-entropy_label = {'entropy'};
-
-%========================
-
-functions = { cicm_func } % haralick_func_lab };
-labels = [ cicm_labels ]; %haralick_labels_lab ];
+functions = { histogram_func_rgb histogram_func_lab haralick_func_rgb haralick_func_lab } % haralick_func_lab };
+labels = [ histogram_labels_rgb histogram_labels_lab haralick_labels_rgb haralick_labels_lab ]; %haralick_labels_lab ];
 
 FE = FeatureExtractor(functions, labels);
 
@@ -115,7 +112,7 @@ func_fe = FE.BlockProcHandle;
 
 % row_idx = 1;
    
-for i = 10:length(images)
+for i = 1:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
@@ -144,6 +141,8 @@ for i = 10:length(images)
     data = FV;
     
     message = num2str(any(FV));
+    
+    message = [message '  ----  Time taken: ' num2str(mytime) 's']
     
     title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
     sendmail('nicholas.mccarthy@gmail.com', title, message);

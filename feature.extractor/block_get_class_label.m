@@ -25,9 +25,21 @@ for i = 1:length(u);
     end
 end
 
-coverage = (sum(block_struct.data(:) == label)) / ( size(block_struct.data, 1) * size(block_struct.data, 2) ) ;
+% Converting uint8 values to string labels
+interval = (255/8);
 
-coverage = coverage * 255;  % blockproc returns values of same type as input (uint8), so the 0-1 values get rounded up or down..
+idx_labelsr = num2str(idx_labels);
+idx_labelsr = cellstr(idx_labelsr);
+
+idx_labelsr = regexprep(idx_labelsr, '28', 'G34');
+idx_labelsr = regexprep(idx_labelsr, '56', 'G4');
+idx_labelsr = regexprep(idx_labelsr, '85', 'G45');
+idx_labelsr = regexprep(idx_labelsr, '113', 'G5');
+idx_labelsr = regexprep(idx_labelsr, '141', 'INF')
+idx_labelsr = regexprep(idx_labelsr, '170', 'ART');
+idx_labelsr = regexprep(idx_labelsr, '198', 'TIS');
+idx_labelsr = regexprep(idx_labelsr, '255', 'NON');
+idx_labelsr = regexprep(idx_labelsr, '0', 'G3');
 
 results = [label double(coverage)];
 
