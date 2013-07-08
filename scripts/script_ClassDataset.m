@@ -42,12 +42,8 @@ tags.Software = 'MATLAB';
 
 tiffclasses = {'G3', 'G34' ,'G4', 'G45', 'G5'};
 
-% for tc = tiffclasses
-%     newtifffilename = [output_dir tc{:} '.tif'];
-%     t = Tiff(newtifffilename, 'w');
-%     t.setTag(tags);
-%     t.close();
-% end
+entropy_check = @(I) entropy(I) > 3.8;
+
 
 %% Parfor instead of blockproc .. 
 
@@ -55,7 +51,7 @@ tiffclasses = {'G3', 'G34' ,'G4', 'G45', 'G5'};
 
 disp('Starting parfor loop!');
 
-for i = 15:length(images)
+for i = 1:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(imagepath);
@@ -68,7 +64,6 @@ for i = 15:length(images)
     mask = imread(maskpath);
     
     % Determine tiling coords 
-    
     tile_width = imageinfo.Width;
     tile_height = imageinfo.Height;
     
@@ -100,12 +95,12 @@ for i = 15:length(images)
 %         maskregion = imread(maskpath, 'PixelRegion', {mask_ys, mask_xs});    % Read mask region from disk (slower!)
         
         % Get region label
-        tileclass = get_class_label(maskregion);    
+        tileclass = get_class_label(maskregion, 'string');    
         
         % If label is one we want
         if any(ismember(tileclass, tiffclasses))
                         
-            fprintf('Found %s, appending to tiff .. \n', tileclass);
+            fprintf('Found %s tile .. performing entropy check .. ', tileclass);
             % Get tile regions
             tile_xs = [tiling_matrix(b, 1) tiling_matrix(b, 1)+(tilesize-1)];
             tile_ys = [tiling_matrix(b, 2) tiling_matrix(b, 2)+(tilesize-1)];
@@ -113,12 +108,21 @@ for i = 15:length(images)
             % Read image region
             tile = imread(imagepath, 'PixelRegion', {tile_xs tile_ys});
             
-            tifffile = [output_dir tileclass '.tif']; % Better than indexing into tiffimages .. 
+            % Perform entropy check on tile to remove blank / lumen areas
+            % covered by annotation region
+            if entropy_check(tile)
+                
+                fprintf('passed! Appending to tiff .. \n ');
+                tifffile = [output_dir tileclass '.tif']; % Better than indexing into tiffimages .. 
          
-            t = Tiff(tifffile, 'a'); % Open tiff for appending
-            t.setTag(tags);
-            t.write(tile); % Write tile 
-            t.close(); % Close tiffobj
+                t = Tiff(tifffile, 'a'); % Open tiff for appending
+                t.setTag(tags);
+                t.write(tile); % Write tile 
+                t.close(); % Close tiffobj
+                
+            else
+                fprintf('failed! Ignoring .. \n');
+            end
             
         end
         
@@ -130,21 +134,5 @@ end
 
 %% CLEANUP
 
-sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Adios');
+sendmail('nicholas.mccarthy@gmail.com', 'Completed constructing class dataset. ', 'Adios');
 
-%%
-
-
-%% Testing writing multi-directory tiff files
-
-A = uint8(rand(256, 256, 3) * 255);
-
-for i = 1:10
-    
-    t = Tiff('atest.tif', 'a');
-
-    t.setTag(tags);
-
-    t.write(A);
-    t.close();
-end
