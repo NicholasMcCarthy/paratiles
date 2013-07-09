@@ -13,9 +13,9 @@ classdef PixelClassifier
     
     methods
         
-        %%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%
         % Constructor method %
-        %%%%%%%%%%%%%%%%%%%%%%
+        %%%%%%%%%%%%%%%%%
         function this = PixelClassifier()
             
             filepath = 'models/NB-PixelClassifier.LAB.ind.mat';

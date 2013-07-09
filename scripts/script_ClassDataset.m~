@@ -1,5 +1,8 @@
-% This script will iterate through a set of images, tile them and determine
-% whether they are within 
+% This script generates a set of multipage Tiffs for each class. 
+% It does this by iterating through the the set of images we have, reading
+% the equivelent mask region and determining the class label. If it is one
+% of the classes it appends it to the CLASSNAME.tif file as a tile. 
+% 
 
 % Author: Nicholas McCarthy
 % Date created: 03/07/2013
@@ -9,75 +12,128 @@
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
 masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
-output_dir = [env.image_dir 'class-datasets/']
+output_dir = [env.image_dir 'class-datasets/'];
 
-tilesize = 256;     % Tilesize for 40x image  
+tilesize = 256;     % Tilesize for 40x image % NOTE: for the 20x images (9.tif) just change this to 128 for same region
 maskts = 16;      % Equivelant tilesize for mask image
 
-% Ensure your local setup allows this ..
-matlabpool local 4;
+% Ensure your local setup has matlabpool validated, etc
+if matlabpool('size') == 0
+    matlabpool local 4;
+end
+
+%% Create Tiff tagstruct 
+% Assign this to finalize written Tiff images with proper Tiff tags. 
+
+tagstruct.ImageLength = tilesize;
+tagstruct.ImageWidth = tilesize;
+tagstruct.Photometric = Tiff.Photometric.RGB;
+% tagstruct.SampleFormat = Tiff.SampleFormat.IEEEFP;
+tagstruct.Compression = Tiff.Compression.JPEG;
+tagstruct.BitsPerSample = 8;
+tagstruct.RowsPerStrip = 16;
+tagstruct.SamplesPerPixel = 3;
+tagstruct.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
+tagstruct.Software = 'MATLAB';
+
 
 %% Create multi-level tiffs per class
 
 tiffclasses = {'G3', 'G34' ,'G4', 'G45', 'G5'};
 
-for tc = tiffclasses
-        
-    newtifffilename = [output_dir tc{:} '.tif'];
-    
-    T = Tiff(newtifffilename, 'a');
-    T.setTag('Compression', Tiff.Compression.JPEG);
-    
-    tagstruct.ImageLength = size(result, 2);
-tagstruct.ImageWidth = size(result, 1);
-tagstruct.Photometric = Tiff.Photometric.MinIsBlack;
-tagstruct.SampleFormat = Tiff.SampleFormat.IEEEFP;
-tagstruct.Compression = Tiff.Compression.None;
-tagstruct.BitsPerSample = 32;
-tagstruct.SamplesPerPixel = 1;
-tagstruct.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
-tagstruct.Software = 'MATLAB';
-t.setTag(tagstruct);
-
-    
-end
-
+% for tc = tiffclasses
+%     newtifffilename = [output_dir tc{:} '.tif'];
+%     t = Tiff(newtifffilename, 'w');
+%     t.setTag(tagstruct);
+%     t.close();
+% end
 
 %% Parfor instead of blockproc .. 
 
-% profile on;
-   
-for i = 1:length(images)
+profile on;
+
+disp('Starting parfor loop!');
+
+for i = 1 %:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(imagepath);
     
+    disp(imagepath);
+    
     maskpath = masks{i};
     maskinfo = imfinfo(maskpath);
     
-    fprintf('Current Image: %s \n', imagepath);
+    mask = imread(maskpath);
     
-    % Get number of blocks processed in this image
-    numBlocks = ceil( (imageinfo.Width) / tilesize ) * ceil( (imageinfo.Height) / tilesize);
+    % Determine tiling coords 
+    tile_x_coords = 1:tilesize:(imageinfo.Width-mod(imageinfo.Width, tilesize)); % .. for image
+    tile_y_coords = 1:tilesize:(imageinfo.Height-mod(imageinfo.Height, tilesize));
     
+    mask_x_coords = 1:maskts:(maskinfo.Width-mod(maskinfo.Width, maskts)); % .. for mask
+    mask_y_coords = 1:maskts:(maskinfo.Height-mod(maskinfo.Height, maskts));
     
+    [Tx Ty] = meshgrid(tile_y_coords, tile_x_coords);               % Welp now I understand how meshgrid works 
+    [Mx My] = meshgrid(mask_y_coords,mask_x_coords);   
     
-    % Concat output_dir with regex replaced filename (8.tif -> PC8.tif) 
-    outputpath = [output_dir regexprep(fliplr(strtok(fliplr(images{1}), '/')), '.8.tif', '.PC8.tif')]   % .. don't ask 
-    fprintf('Current Image: %s \n', imagepath);
+    tiling_matrix = cat(3, Tx, Ty, Mx, My);                                      
+    tiling_matrix = reshape(tiling_matrix, size(tiling_matrix, 1) * size(tiling_matrix, 2), 4);  % This should work for a single parfor loop now .. 
+    tiling_matrix = tiling_matrix(1:end-1, :);                          % Dropping the last coords so image coordinates are not out of bounds ..
     
-    % Blockproc
-    tic
-    blockproc(imagepath, [tilesize tilesize], cls_image, 'Destination', outputpath);
-    toc
-    
+    % Parallellize searching regions of each image
+    % Iterative over each mask-image paired coordinates
+    parfor b = 30000:length(tiling_matrix);
+        
+        % Mask coordinates
+        mask_ys = [tiling_matrix(b, 3) tiling_matrix(b, 3)+maskts-1];
+        mask_xs = [tiling_matrix(b, 4) tiling_matrix(b, 4)+maskts-1];
+        
+        maskregion = mask(mask_ys(1):mask_ys(2), mask_xs(1):mask_xs(2));     % Read mask region from previously read mask image
+%         maskregion = imread(maskpath, 'PixelRegion', {mask_ys, mask_xs});    % Read mask region from disk (slower!)
+        
+        % Get region label
+        tileclass = get_class_label(maskregion);    
+        disp(tileclass);
+        
+        % If label is one we want
+        if any(ismember(tileclass, tiffclasses))
+                        
+            disp(b);
+            fprintf('Found %s, appending to tiff .. \n', tileclass);
+            % Get tile regions
+            tile_xs = [tiling_matrix(b, 1) tiling_matrix(b, 1)+(tilesize-1)];
+            tile_ys = [tiling_matrix(b, 2) tiling_matrix(b, 2)+(tilesize-1)];
+            
+            % Read image region
+            tile = imread(imagepath, 'PixelRegion', {tile_xs tile_ys});
+            
+            tifffile = [output_dir tileclass '.tif']; % Better than indexing into tiffimages .. 
+         
+            t = Tiff(tifffile, 'a'); % Open tiff for appending
+            t.setTag(tagstruct);
+            
+            t.write(tile); % Write tile 
+%             t.writeDirectory();  % Create new IFD
+
+            t.close(); % Close tiffobj
+            
+        end
+        
+    end
 end
 
-% profile off;
-% profile report;
+profile off;
+profile report;
 
 %% CLEANUP
 
 sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Adios');
 
 %%
+
+
+%% Testing writing multi-directory tiff files
+
+A = uint8(rand(256, 256, 3) * 255);
+
+

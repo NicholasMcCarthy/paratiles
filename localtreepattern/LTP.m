@@ -1,11 +1,23 @@
 %%%%%%%%%%%%%%%%%%
 % Roughwork and notes %
 %%%%%%%%%%%%%%%%%%
+% Seriously, this is really really rough work. 
+
+% Idea: Extend local binary/ternary patterns to local n-ary patterns.
+
+% Basically, instead of a simple greater/less than function (binary) or
+% single constant thresholding function (ternary) we have an adaptive (gaussian?) range
+% for assigning local integer values. 
+
+% Size of histogram: |H| = n*(n+1) / 2
+
+
+
+
 
 % Local tree pattern histogram
 
 % parameterized local pattern histogram
-
 
 
 %% Binary pattern search
@@ -85,8 +97,10 @@ q = (n*(n+1)) /2
 %   -  e.g. 5 classes with 8 connectivity = 0 .. 390625 
 %          - but with binning;
 
-
-
 % take 5 classes .. 
 %   -  
+<<<<<<< HEAD
 >>>>>>> 51eb89a1c4f3c84463e0998e15082d4f264ab7ba
+=======
+
+>>>>>>> bdf0c13d2cd9c400af84d12f825671ea59469bee

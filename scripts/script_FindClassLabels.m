@@ -1,4 +1,4 @@
-% This is the main script for running feature extraction
+% This is the main script for getting class labels of tiles in a set of images
 
 % Author: Nicholas McCarthy (nicholas.mccarthy@gmail.com)
 % Created: 27-05-2013

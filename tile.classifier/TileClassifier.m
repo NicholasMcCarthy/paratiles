@@ -1,12 +1,23 @@
 classdef TileClassifier
-    %TILECLASSIFIER Summary of this class goes here
-    %   Detailed explanation goes here
+    % TileClassifier object. Takes an image tile as an input, extracts
+    % features using the supplied featureextractor and returns a prediction
+    % using the supplied model.
     
-    properties
-        ModelFilePath,       % Path to model being used
-        Model,               % The model itself
-        FeatureExtractor,    % Feature extractor 
-        Description, 
+    % Author: Nicholas McCarthy
+    % Date created: 21/06/13
+    % Date updated: 08/07/2013
+    
+    
+    % Private fields
+    properties(GetAccess = private, SetAccess = private);
+        ModelFilePath,           % Path to model being used
+        Model,                       % The model itself
+        FeatureExtractor,       % Feature extractor 
+    end
+    
+    % Public fields
+    properties(GetAccess = public, SetAccess = private);
+        Description,               % Description of where/why/how/what this is doing 
     end
     
     methods
@@ -14,17 +25,13 @@ classdef TileClassifier
         function this = TileClassifier(varargin)
            
             p = inputParser;
+            p.addRequired('Model', @(x) isa(x, 'NaiveBayes'));
             p.addRequired('FeatureExtractor', @(x) isa(x, 'FeatureExtractor'));
-            p.addOptional('ModelPath', 'models/model.mat', @(x) ischar(x) && exist(x, 'file'));
-            
+            p.addOptional('Description', @ischar);
             p.parse(varargin{:});
             
-            this.ModelFilePath = p.Results.ModelPath;
             this.FeatureExtractor = p.Results.FeatureExtractor;
-            disp(this.ModelFilePath);
-            loaded = load(this.ModelFilePath);
-            
-            this.Model = loaded.NB;         % Using NaiveBayes classifier as a _placeholder_ 
+            this.Model = p.Results.Model;
             
             this.Description = 'TileClassifier: default settings';
             
@@ -32,11 +39,12 @@ classdef TileClassifier
         
         function pred = predict(I)
             
+            % Extract features from tile
             FV = this.FE.ExtractFeatures(I);
+            % Classify tile
             pred = this.Model.predict(FV);
             
         end
-        
         
     end
     

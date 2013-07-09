@@ -1,5 +1,8 @@
-% This script will iterate through a set of images, tile them and determine
-% whether they are within 
+% This script generates a set of multipage Tiffs for each class. 
+% It does this by iterating through the the set of images we have, reading
+% the equivelent mask region and determining the class label. If it is one
+% of the classes it appends it to the CLASSNAME.tif file as a tile. 
+% 
 
 % Author: Nicholas McCarthy
 % Date created: 03/07/2013
@@ -9,104 +12,121 @@
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
 masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
-output_dir = [env.image_dir 'class-datasets/']
+output_dir = [env.image_dir 'class-datasets/'];
 
-tilesize = 256;     % Tilesize for 40x image  
-maskts = 16;      % Equivelant tilesize for mask image
+tilesize = 256;     % Tilesize for 40x image % NOTE: for the 20x images (9.tif) just change this to 128 for same region
+tilesize_mask = 16;      % Equivelant tilesize for mask image
 
+% Ensure your local setup has matlabpool validated, etc
+if matlabpool('size') == 0
+    matlabpool local 4;
+end
 
-% Ensure your local setup allows this ..
-matlabpool local 4;
+%% Create Tiff tags 
+% Assign this to finalize written Tiff images with proper Tiff tags. 
+
+tags.Photometric = Tiff.Photometric.RGB;
+tags.ImageLength = tilesize;
+tags.ImageWidth = tilesize;
+tags.Compression = Tiff.Compression.JPEG;
+tags.BitsPerSample = 8;
+tags.RowsPerStrip = 16;
+tags.SamplesPerPixel = 3;
+tags.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
+tags.Software = 'MATLAB';
+
+% tags.SampleFormat = Tiff.SampleFormat.IEEEFP;
+
 
 %% Create multi-level tiffs per class
 
 tiffclasses = {'G3', 'G34' ,'G4', 'G45', 'G5'};
 
-for tc = tiffclasses
-        
-    newtifffilename = [output_dir tc{:} '.tif'];
-    
-    t = Tiff(newtifffilename, 'a');
-    
-    t.close();
+entropy_check = @(I) entropy(I) > 3.8;
 
-    
-end
-
-
-%% Create Tiff tagstruct 
-
-tagstruct.ImageLength = tilesize;
-tagstruct.ImageWidth = tilesize;
-tagstruct.Photometric = Tiff.Photometric.MinIsBlack;
-tagstruct.SampleFormat = Tiff.SampleFormat.IEEEFP;
-tagstruct.Compression = Tiff.Compression.JPEG;
-tagstruct.BitsPerSample = 32;
-tagstruct.RowsPerStrip = 16
-tagstruct.SamplesPerPixel = 1;
-tagstruct.PlanarConfiguration = Tiff.PlanarConfiguration.Chunky;
-tagstruct.Software = 'MATLAB';
 
 %% Parfor instead of blockproc .. 
 
 % profile on;
-   
+
+disp('Starting parfor loop!');
+
 for i = 1:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(imagepath);
     
+    disp(imagepath);
+    
     maskpath = masks{i};
     maskinfo = imfinfo(maskpath);
     
-    % Get number of blocks processed in this image
-    numBlocks = ceil( (imageinfo.Width) / tilesize ) * ceil( (imageinfo.Height) / tilesize);
+    mask = imread(maskpath);
     
-    %% Determine tile coords 
-    trow_coords = 1:tilesize:(imageinfo.Width-mod(imageinfo.Width, tilesize)); % .. for image
-    tcol_coords = 1:tilesize:(imageinfo.Height-mod(imageinfo.Height, tilesize));
+    % Determine tiling coords 
+    tile_width = imageinfo.Width;
+    tile_height = imageinfo.Height;
     
-    mrow_coords = 1:maskts:(maskinfo.Width-mod(maskinfo.Width, maskts)); % .. for mask
-    mcol_coords = 1:maskts:(maskinfo.Height-mod(maskinfo.Height, maskts));
+    mask_width = size(mask, 2);
+    mask_height = size(mask, 1);
     
-    [Tx Ty] = meshgrid(trow_coords, tcol_coords);               % Welp now I understand how meshgrid works 
-    [Mx My] = meshgrid(mrow_coords, mcol_coords);   
+    tile_x_coords = 1:tilesize:(tile_width-mod(tile_width, tilesize)); % .. for image
+    tile_y_coords = 1:tilesize:(tile_height-mod(tile_height, tilesize));
     
-    tvalues = cat(3, Tx, Ty, Mx, My);                                      
-    tvalues = reshape(tvalues, size(tvalues, 1) * size(tvalues, 2), 4);  % This should work for a single parfor loop now .. 
+    mask_x_coords = 1:tilesize_mask:(mask_width-mod(mask_width, tilesize_mask)); % .. for mask
+    mask_y_coords = 1:tilesize_mask:(mask_height-mod(mask_height, tilesize_mask));
     
-    parfor i = 1:length(tvalues);
+    [Tx Ty] = meshgrid(tile_y_coords, tile_x_coords);               % Welp now I understand how meshgrid works 
+    [Mx My] = meshgrid(mask_y_coords,mask_x_coords);   
+    
+    tiling_matrix = cat(3, Tx, Ty, Mx, My);                                      
+    tiling_matrix = reshape(tiling_matrix, size(tiling_matrix, 1) * size(tiling_matrix, 2), 4);  % This should work for a single parfor loop now .. 
+    tiling_matrix = tiling_matrix(1:end-1, :);                          % Dropping the last coords so image coordinates are not out of bounds ..
+    
+    % Parallellize searching regions of each image
+    % Iterative over each mask-image paired coordinates
+    parfor b = 1:length(tiling_matrix);
         
-        trows = [tvalues(i, 1) tvalues(i, 1)+tilesize];
-        tcols = [tvalues(i, 2) tvalues(i, 2)+tilesize];
+        % Mask coordinates
+        mask_ys = [tiling_matrix(b, 3) tiling_matrix(b, 3)+tilesize_mask-1];
+        mask_xs = [tiling_matrix(b, 4) tiling_matrix(b, 4)+tilesize_mask-1];
         
-        mrows = [tvalues(i, 3) tvalues(i, 3)+maskts];
-        mcols = [tvalues(i, 4) tvalues(i, 4)+maskts];
+        maskregion = mask(mask_ys(1):mask_ys(2), mask_xs(1):mask_xs(2));     % Read mask region from previously read mask image
+%         maskregion = imread(maskpath, 'PixelRegion', {mask_ys, mask_xs});    % Read mask region from disk (slower!)
         
-        mask = imread(maskpath, 'PixelRegion', {mrows mcols});
+        % Get region label
+        tileclass = get_class_label(maskregion, 'string');    
         
-        tileclass = block_get_class_label(mask); % Change this so it doesn't assume a block_struct.data input
-        
-        % if tileclass is in myclasses
-            % read tile
-            tile = imread(imagepath, 'PixelRegion', {trows tcols});
+        % If label is one we want
+        if any(ismember(tileclass, tiffclasses))
+                        
+            fprintf('Found %s tile .. performing entropy check .. ', tileclass);
+            % Get tile regions
+            tile_xs = [tiling_matrix(b, 1) tiling_matrix(b, 1)+(tilesize-1)];
+            tile_ys = [tiling_matrix(b, 2) tiling_matrix(b, 2)+(tilesize-1)];
             
-            % and  append it to the appropriate tiff 
+            % Read image region
+            tile = imread(imagepath, 'PixelRegion', {tile_xs tile_ys});
             
+            % Perform entropy check on tile to remove blank / lumen areas
+            % covered by annotation region
+            if entropy_check(tile)
+                
+                fprintf('passed! Appending to tiff .. \n ');
+                tifffile = [output_dir tileclass '.tif']; % Better than indexing into tiffimages .. 
+         
+                t = Tiff(tifffile, 'a'); % Open tiff for appending
+                t.setTag(tags);
+                t.write(tile); % Write tile 
+                t.close(); % Close tiffobj
+                
+            else
+                fprintf('failed! Ignoring .. \n');
+            end
             
-        % end
-            
+        end
+        
     end
-    
-    % Concat output_dir with regex replaced filename (8.tif -> PC8.tif) 
-    outputpath = [output_dir regexprep(fliplr(strtok(fliplr(images{1}), '/')), '.8.tif', '.PC8.tif')]   % .. don't ask 
-    fprintf('Current Image: %s \n', imagepath);
-    
-    % Blockproc
-    tic
-    blockproc(imagepath, [tilesize tilesize], cls_image, 'Destination', outputpath);
-    toc
-    
 end
 
 % profile off;
@@ -114,6 +134,5 @@ end
 
 %% CLEANUP
 
-sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Adios');
+sendmail('nicholas.mccarthy@gmail.com', 'Completed constructing class dataset. ', 'Adios');
 
-%%
