@@ -20,7 +20,7 @@ env.temp_dir = [pwd '\temp\'];
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
 masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
-WILDCARD = 'fe.CICM'; % date;
+WILDCARD = 'fe.HARALICK'; % date;
 
 output_dir = strcat(env.dataset_dir, WILDCARD, '-', date, '/');
 
@@ -34,7 +34,7 @@ tilesize = 256;
 D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20 initial PCRC images. 
         
 %% INIT Full feature set
-% 
+% % 
 % profile on;
 % 
 % distances = [1 2 4];
@@ -61,7 +61,7 @@ D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20
 % 
 % profile off;
 % profile report;
-% 
+
 
 % Ensure your local setup allows this ..
 matlabpool local 4
@@ -97,8 +97,8 @@ entropy_label = {'entropy'};
 
 %========================
 
-functions = { cicm_func } % haralick_func_lab };
-labels = [ cicm_labels ]; %haralick_labels_lab ];
+functions = { histogram_func_rgb histogram_func_lab haralick_func_rgb haralick_func_lab } % haralick_func_lab };
+labels = [ histogram_labels_rgb histogram_labels_lab haralick_labels_rgb haralick_labels_lab ]; %haralick_labels_lab ];
 
 FE = FeatureExtractor(functions, labels);
 
@@ -115,7 +115,7 @@ func_fe = FE.BlockProcHandle;
 
 % row_idx = 1;
    
-for i = 14:length(images)
+for i = 10:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
@@ -166,28 +166,28 @@ end
 %     fclose(fid);
 % end
 
-for i = 1:length(images)  % for each image
-    
-    fprintf('image %d \n', i);
-    
-    matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
-    load(matfile);                                                                                                      % loads 'data' struct
-    
-    for c = 1:size(data, 2)                                                                                         % Append each column
-        
-        filename = strcat(output_dir, FE.Features{c}, '.csv');                                       % Column filename 
-        fid = fopen(filename, 'a');                                                                               % Open to append
-        
-        for r = 1:size(data, 1)                                                                                     %  For each row in 'data'
-            
-            fprintf(fid,   '%0.9f\n', data(r, c));                                                               % append it to file
-            
-        end
-        fclose(fid);
-        
-    end
-  
-end
+% for i = 1:length(images)  % for each image
+%     
+%     fprintf('image %d \n', i);
+%     
+%     matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
+%     load(matfile);                                                                                                      % loads 'data' struct
+%     
+%     for c = 1:size(data, 2)                                                                                         % Append each column
+%         
+%         filename = strcat(output_dir, FE.Features{c}, '.csv');                                       % Column filename 
+%         fid = fopen(filename, 'a');                                                                               % Open to append
+%         
+%         for r = 1:size(data, 1)                                                                                     %  For each row in 'data'
+%             
+%             fprintf(fid,   '%0.9f\n', data(r, c));                                                               % append it to file
+%             
+%         end
+%         fclose(fid);
+%         
+%     end
+%   
+% end
 
 
 % This function works for a single data matrix, not appending to multiple

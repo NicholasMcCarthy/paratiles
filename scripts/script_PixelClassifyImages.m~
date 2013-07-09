@@ -1,0 +1,89 @@
+% This script will convert a set of images using the pixel classifier
+
+% Author: Nicholas McCarthy
+% Date created: 03/07/2013
+
+%% SETUP
+
+images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
+
+output_dir = [env.image_dir 'pixel-classified/']
+
+tilesize = 1024; % Irrelevant for this purpose, this seems reasonable 
+
+% Ensure your local setup allows this ..
+% matlabpool local 4
+
+%% Set up Pixel Classifier
+
+PC = PixelClassifier;
+PC.ScaleOutput = 1;     % 
+cls_image = @(I) PC.ClassifyImage(I.data)
+
+%% RUN
+
+% profile on;
+% data = zeros(D_length, length(FE.Features));  % Pre-allocate on an image
+% by image basis rather than the entire set .. Running out of memory. 
+
+% row_idx = 1;
+   
+for i = 1 %:length(images)
+    
+    imagepath = images{i};
+    
+    outputpath = [output_dir regexprep(fliplr(strtok(fliplr(images{1}), '/')), '.8.tif', '.PC8.tif')]
+    fprintf('Current Image: %s \n', imagepath);
+    
+    % Blockproc
+    tic
+    blockproc(imagepath, [tilesize tilesize], cls_image, 'Destination', outputpath);
+    mytime = toc;
+    
+end
+
+% profile off;
+% profile report;
+
+%% OUTPUT 
+
+% % Generate single column csvs with column names as filenames
+% for h = 1:length(FE.Features)
+%     filename = strcat(output_dir, FE.Features{h}, '.csv');
+%     fid = fopen(filename, 'w+');
+%     fclose(fid);
+% end
+
+for i = 1:length(images)  % for each image
+    
+    fprintf('image %d \n', i);
+    
+    matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
+    load(matfile);                                                                                                      % loads 'data' struct
+    
+    for c = 1:size(data, 2)                                                                                         % Append each column
+        
+        filename = strcat(output_dir, FE.Features{c}, '.csv');                                       % Column filename 
+        fid = fopen(filename, 'a');                                                                               % Open to append
+        
+        for r = 1:size(data, 1)                                                                                     %  For each row in 'data'
+            
+            fprintf(fid,   '%0.9f\n', data(r, c));                                                               % append it to file
+            
+        end
+        fclose(fid);
+        
+    end
+  
+end
+
+
+% This function works for a single data matrix, not appending to multiple
+% ones :( 
+% writeMatrixToCSV(data, FE.Features, output_dir);
+
+%% CLEANUP
+
+sendmail('nicholas.mccarthy@gmail.com', 'Processing complete', 'Adios');
+
+%%

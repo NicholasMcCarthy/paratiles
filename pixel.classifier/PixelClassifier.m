@@ -6,6 +6,11 @@ classdef PixelClassifier
         Key = {'LUMEN', 'STROMA', 'CYTOPLASM', 'NUCLEI', 'INFLAMMATION', 'FIXATIVE', 'INTRALUMINAL'}
     end
     
+    properties(GetAccess = public, SetAccess = public);
+        ScaleOutput,
+        NucleiProcSize,   % Defaults to 100 (for 40x images), option to change here for 20x
+    end
+    
     methods
         
         %%%%%%%%%%%%%%%%%%%%%%
@@ -19,6 +24,9 @@ classdef PixelClassifier
             
             loaded = load(filepath);
             this.Model = loaded.NB;
+            
+            this.ScaleOutput = 0;           % Scale output of ClassifyImage function to [0 255] values
+            this.NucleiProcSize = 100;   % Set value for nuclei segmentation algorithm
             
             clear('loaded', 'filepath');    % Removes the loaded var 
         end
@@ -43,6 +51,11 @@ classdef PixelClassifier
             img = reshape(img, X*Y, Z);                     % Reshape image to feature vector form
             cicm = this.Model.predict(double(img));         % Predict labels of pixels
             cicm = uint8(reshape(cicm, X, Y));              % Reshape to original image size and cast to uint8
+            
+            if (this.ScaleOutput) 
+                cicm = cicm .* (255/5); % quick and dirty 
+            end
+            
         end
            
         %%%%%%%%%%%%%%%%  % Input: Class index image
@@ -68,7 +81,7 @@ classdef PixelClassifier
             
             PI(PI==0) = CI(PI==0); % Fill in gaps with pixels from unprocessed image
             
-            PI = medfilt2(PI, [5 5]); % Stir with median filter.
+            PI = medfilt2(PI, [3 3]); % Stir with median filter.
         end
         
         %%%%%%%%%%%%%%%%%%%%%%% % Input: an RGB image
@@ -116,7 +129,7 @@ classdef PixelClassifier
                 HIST(h) = sum(sum(CI(:) == (h)));
             end
             
-            % Normalize histogram (i.e  PDE)
+            % Normalize histogram (i.e  to PDF)
             HIST_size = 65536;         % hard-coded to avoid re computing each time
             HIST = HIST /HIST_size; 
             
@@ -316,7 +329,7 @@ classdef PixelClassifier
                  
              elseif strcmp(class, 'NUCLEI')
                  
-                 pmask = bwareaopen(pmask, 100);
+                 pmask = bwareaopen(pmask, this.NucleiProcSize);    % Just for changing from 40x to 20x
                  pmask = imopen(pmask, strel('disk', 2));
                  pmask = imdilate(pmask, strel('disk', 2)); % Not sure if necessary
                  pmask = imfill(pmask, 8, 'holes');
