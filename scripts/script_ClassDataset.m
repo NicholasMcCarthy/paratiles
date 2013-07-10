@@ -138,6 +138,41 @@ disp('Ended parfor loop!');
 % profile off;
 % profile report;
 
+%% Creating the multipage tiffs from individual tiles
+
+for i = 1:length(tiffclasses)
+    
+    tiffclass = tiffclasses{i};
+    
+    tile_class = [output_dir tileclass '.tif'];
+    tile_dir = [output_dir tileclass '/'];
+    
+    tileset = getFiles(tile_dir, 'Suffix', '.tif');
+    
+    t = Tiff(tile_class, 'a');
+    
+    t.writeDirectory(); % ????? 
+    
+    for t = 1:length(tileset)
+        
+        
+        % try read the tile
+        % if theres an error, ignore it
+        % otherwise append it to tileclass.tif
+        
+        
+        tile = imread(tileset{t});
+        
+        t.setTag(tags);
+        t.write(tile);
+        t.writeDirectory();
+        
+    end
+    
+    t.close();
+     
+end
+
 %% CLEANUP
 
 sendmail('nicholas.mccarthy@gmail.com', 'Completed constructing class dataset. ', 'Adios');

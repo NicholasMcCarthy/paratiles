@@ -9,7 +9,7 @@
 %--------
 % Sets env vars, any other odds and ends
 
-data.images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.');
+data.images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');
 data.masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
 %% Init
@@ -18,13 +18,14 @@ data.masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs')
 image_tilesize = [256 256];
 mask_tilesize = [16 16];
 
-% matlabpool local 4;     % Open matlab pool for parallel processing
-disp('Ready!');
+if matlabpool('size') == 0
+    matlabpool local 4;     % Open matlab pool for parallel processing
+end
 
 %% EXTRACT CLASS LABELS
 
 % Gets label and percentage coverage of annotation region. 
-func_labels = @(block_struct) shiftdim(block_get_class_label(block_struct), -1);
+func_labels = @(block_struct) shiftdim(get_class_label(block_struct.data), -1);
 
 idx_labels = [];        % Assigned label
 idx_coverage = [];      % Coverage of label
@@ -33,7 +34,7 @@ idx_filenames = {};     % Filename of obs.
 for i = 1:20 
     
     disp(i); tic;
-    mask_filepath = strcat(env.image_dir, data.masks(i).name); % Get mask filepath
+    mask_filepath = data.masks{i}; % Get mask filepath
 
     % Blockproc mask image to get class labels
     G = blockproc(mask_filepath, mask_tilesize, func_labels, 'PadPartialBlocks', true); 
@@ -42,7 +43,6 @@ for i = 1:20
     G = reshape(G, X*Y, Z);
      
     idx_labels = vertcat(idx_labels, G(:,1));   % grayscale int8 values for each class
-    idx_coverage = vertcat(idx_coverage, G(:,2));
     idx_filenames = vertcat(idx_filenames, cellstr(repmat(mask_filepath, length(G(:,1)), 1)));
     
     toc
@@ -60,7 +60,7 @@ idx_labelsr = regexprep(idx_labelsr, '28', 'G34');
 idx_labelsr = regexprep(idx_labelsr, '56', 'G4');
 idx_labelsr = regexprep(idx_labelsr, '85', 'G45');
 idx_labelsr = regexprep(idx_labelsr, '113', 'G5');
-idx_labelsr = regexprep(idx_labelsr, '141', 'INF')
+idx_labelsr = regexprep(idx_labelsr, '141', 'INF');
 idx_labelsr = regexprep(idx_labelsr, '170', 'ART');
 idx_labelsr = regexprep(idx_labelsr, '198', 'TIS');
 idx_labelsr = regexprep(idx_labelsr, '255', 'NON');
