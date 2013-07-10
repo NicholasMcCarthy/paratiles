@@ -35,18 +35,30 @@ for r = 1:3
 	H(r,:) = H(r,:) ./sqrt(sum(H(r,:).^2));
 end
 
-I = imread('hestain.png');
-G = uint8(size(I));
-[X Y Z] = size(I);
+% I = imread('hestain.png');
 
-I = double(reshape(I, X*Y, Z));
-
-for r = 1:size(I, 1)
+for i = 1:length(images)
     
-    I(r,:) = I(r,:) * H;
+    I = imread(images{i});
+    G = I;
+    [X Y Z] = size(I);
+
+    G = double(reshape(G, X*Y, Z)); % Convert image to double and vector form
+
+    G = G'; % Flip so each pixel is a column
+
+    for r = 1:size(G, 2)
+        G(:,r) = H * G(:,r);
+    end
+
+    G = uint8(G);
+    G = G';
+    G = reshape(G, X, Y, Z);
+
+    figure;
+    subplot(211), imshow(I), title('Original image');
+    subplot(212), imshow(G), title('Deconvolved image');
     
 end
-
-I = reshape(I, X, Y, Z);
 
 

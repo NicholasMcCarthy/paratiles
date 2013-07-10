@@ -2,10 +2,10 @@
 % It does this by iterating through the the set of images we have, reading
 % the equivelent mask region and determining the class label. If it is one
 % of the classes it appends it to the CLASSNAME.tif file as a tile. 
-% 
 
 % Author: Nicholas McCarthy
 % Date created: 03/07/2013
+% Date updated: 08/07/2013
 
 %% SETUP
 
@@ -40,10 +40,10 @@ tags.Software = 'MATLAB';
 
 %% Create multi-level tiffs per class
 
+% Classes to extract
 tiffclasses = {'G3', 'G34' ,'G4', 'G45', 'G5'};
 
 entropy_check = @(I) entropy(I) > 3.8;
-
 
 %% Parfor instead of blockproc .. 
 
@@ -100,7 +100,6 @@ for i = 1:length(images)
         % If label is one we want
         if any(ismember(tileclass, tiffclasses))
                         
-            fprintf('Found %s tile .. performing entropy check .. ', tileclass);
             % Get tile regions
             tile_xs = [tiling_matrix(b, 1) tiling_matrix(b, 1)+(tilesize-1)];
             tile_ys = [tiling_matrix(b, 2) tiling_matrix(b, 2)+(tilesize-1)];
@@ -112,16 +111,22 @@ for i = 1:length(images)
             % covered by annotation region
             if entropy_check(tile)
                 
-                fprintf('passed! Appending to tiff .. \n ');
-                tifffile = [output_dir tileclass '.tif']; % Better than indexing into tiffimages .. 
-         
-                t = Tiff(tifffile, 'a'); % Open tiff for appending
-                t.setTag(tags);
-                t.write(tile); % Write tile 
-                t.close(); % Close tiffobj
+                tile_filepath = [output_dir tileclass '/' sprintf('%0.15f', now) '.tif']
                 
-            else
-                fprintf('failed! Ignoring .. \n');
+                t= Tiff(tile_filepath, 'a');
+                t.setTag(tags);
+                t.write(tile);
+                t.close();
+                
+                % Since apparently Matlab is infuckingcapable of actually
+                % writing multipage tiffs correctly, 
+%                 tifffile = [output_dir tileclass '.tif']; % Better than indexing into tiffimages .. 
+%          
+%                 t = Tiff(tifffile, 'a'); % Open tiff for appending
+%                 t.setTag(tags);
+%                 t.write(tile); % Write tile 
+%                 t.close(); % Close tiffobj
+                
             end
             
         end
@@ -129,6 +134,7 @@ for i = 1:length(images)
     end
 end
 
+disp('Ended parfor loop!');
 % profile off;
 % profile report;
 

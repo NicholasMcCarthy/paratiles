@@ -25,7 +25,7 @@ cls_image = @(I) PC.ClassifyImage(I.data)
 
 % profile on;
    
-for i = 1 %:length(images)
+for i = 1:length(images)
     
     imagepath = images{i};
     
