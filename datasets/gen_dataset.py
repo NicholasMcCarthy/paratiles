@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # This is a python script for generating a single csv file from multiple columnar csv files using only
 # specific (i.e. per class) rows
 from os import listdir
@@ -8,10 +10,10 @@ import re
 
 # Parsing stdin args to script
 p = argparse.ArgumentParser(description="Read directory to list and class to generate dataset for", prog="gen_dataset.py")
-p.add_argument('-dir', required=True)                                                               # Requires a directory location
-p.add_argument('-class', nargs='+', required=True)                                                  # Requires at least one class to be specified
-p.add_argument('-labels', required=True, type=argparse.FileType('r'))                                # The labels file 
-p.add_argument('-output', required = True, type=argparse.FileType('wb', 0))                          # 
+p.add_argument('-dir', required=True, help='Directory of column csv files')                                                               # Requires a directory location
+p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                                                  # Requires at least one class to be specified
+p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')                                # The labels file 
+p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')                          # 
 
 # args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/final -class G3 G34 -labels /home/nick/git/paratiles/datasets/tile_info/labels.csv -output test.csv'.split()));
 
@@ -74,11 +76,12 @@ out.write(header_line)
 ################################################################
 # Extracting selected indices from each file
 
+print "Reading", str(len(csvfiles)), 'files .. Please wait.'
+
 data = []
 
 for csvfile in csvfiles:                                            # for each file
     
-    print "Reading", csvfile 
     lines = open(args['dir']+'/'+csvfile, 'r').readlines()          # read all lines
     
     olines = []                                                     # olines is output lines
@@ -89,22 +92,43 @@ for csvfile in csvfiles:                                            # for each f
         
     data.append(olines)                                             # then append all of the selected lines to the data list
 
+data.append(labels)                    # Append label indices so they are the last column that get written to the output file
 
-data.append(labels)                    # Append label indices so they are the last column
+print " ... Done!"
 
-print "Aggregated dataset: ", args['output'].name
-print "Number cols: " , len(data)
-print "Number rows: " , len(indices)
+num_nonzero_removed = 0		    # Keeping track of how many rows were removed for having no nonzero elements
+
+print "Writing data to output file .. Please wait."
 
 for row in range(0, len(indices)):              # for each row in data
     line = ''
     for col in range(0, len(data)):                     # for each col in data
         line += str(data[col][row]) + ','                    # concatenate the row feature vector
-        
+      
     line = line[0:len(line)-1] # remove last comma
-    line += '\n'    
-    out.write(line)    
+
+    # Part for removing empty rows 
+    nonzero_elements = False	
+    for c in range(1,10): # checking if nonzero numbers are in the row string ..
+      if str(c) in line[0:line.rfind(',')]: # checks up to last comma (since the last value is value and may have numbers
+	 nonzero_elements = True 
+	 break
+   
+    # Write line to output file, except if it it has no nonzero elements 
+    if (nonzero_elements):
+      line += '\n'    
+      out.write(line)    
+    else:
+      num_nonzero_removed += 1
 
 out.close()
 
 print "Finished writing!"
+
+print "Number of rows read: ", len(indices)
+print "Zero-element rows removed: ", num_nonzero_removed
+
+print "Aggregated dataset: ", args['output'].name
+print "Number cols: " , len(data)-1
+print "Number rows: " , len(indices)-num_nonzero_removed
+
