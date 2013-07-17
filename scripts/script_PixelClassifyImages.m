@@ -5,19 +5,22 @@
 
 %% SETUP
 
-images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.9.tif');          % Wildcard so it selects the large .SCN layer image
+images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
 
-output_dir = [env.image_dir 'pixel-classified/']
+output_dir = [env.image_dir 'pixel-classified/'];
 
 tilesize = 1024; % Irrelevant for this purpose, this seems reasonable 
 
 % Ensure your local setup allows this ..
-matlabpool local 3
+if matlabpool('size') == 0
+    matlabpool local 4
+end
 
 %% Set up Pixel Classifier
 
 PC = PixelClassifier;
-PC.ScaleOutput = 1;     % Scales index values to [0 255] 
+
+PC.NucleiProcSize = 100; % Smaller than default as the .9.tifs are 20x magnification
 
 cls_image = @(I) PC.ClassifyImage(I.data)
 
@@ -25,7 +28,7 @@ cls_image = @(I) PC.ClassifyImage(I.data)
 
 % profile on;
    
-for i = 1:length(images)
+for i = 11:length(images)
     
     imagepath = images{i};
     
@@ -37,6 +40,8 @@ for i = 1:length(images)
     tic
     blockproc(imagepath, [tilesize tilesize], cls_image, 'Destination', outputpath);
     toc
+    
+    sendmail('nicholas.mccarthy@gmail.com', strcat(num2str(i), ' : processing complete'), strcat(imagepath, ' has been pixel classified, booyah!'));
     
 end
 

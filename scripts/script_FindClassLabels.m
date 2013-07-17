@@ -68,31 +68,22 @@ idx_labelsr = regexprep(idx_labelsr, '0', 'G3');
 
 idx_labelsr = cellfun(@strtrim, idx_labelsr, 'UniformOutput', false);
 
-idx_coverage = double(idx_coverage) ./ 255; % blockproc input uint8 problem workaround
+%% Writing to .csv
 
-% Creating class label dataset
+% Create files
+output_dir = [env.dataset_dir 'tile_info/'];
+file_filename = [output_dir 'filenames.csv'];
+file_labels = [output_dir 'labels.csv'];
 
-D = dataset( {idx_filenames, 'filename'}, {idx_coverage, 'coverage'}, {idx_labelsr, 'label'})
+f1 = fopen(file_filename, 'a');
+f2 = fopen(file_labels, 'a');
 
-save '../datasets/256/class_labels.mat' D
-
-% sendmail('nicholas.mccarthy@gmail.com', 'Processing complete');
-
-%% Checking output
-
-U = unique(D.label);
-
-label_counts = zeros(length(U), 1);
-
-for u = 1:length(U)
+for i = 1:length(idx_labelsr)  % for each row
     
-    label_counts(u) = sum(strcmp(D.label, U{u}))
+    fprintf(f1, '%s\n', idx_filenames{i});
+    fprintf(f2, '%s\n', idx_labelsr{i});
     
 end
-    
-summary = dataset({U, 'label'}, {label_counts, 'counts'});
 
-save '../datasets/256/class_labels_summary.mat' summary
-
-
-
+fclose(f1);
+fclose(f2);

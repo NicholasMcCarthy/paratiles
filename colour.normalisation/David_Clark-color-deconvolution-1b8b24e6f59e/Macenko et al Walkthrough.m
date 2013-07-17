@@ -17,18 +17,14 @@
 (* overwritten.                                                         *)
 (************************************************************************)
 
-
-
 options[verbose] = True;
 options[alpha]=0.01;
 options[beta] = 0.15;
-
 
 (* Convert the data in an image to a matrix of RGB tuples. This function removes the row/column structure from the image data.
 Input: img -- an image file. Assumed to be an RGB image.
 Output: an array of RGB tuples with byte data elements.*)
 convertToRgbTuples[img_]:= Flatten[ImageData[img, "Byte"], 1];
-
 
 (* Convert a short integer (8-bit byte) in the range of 0 to 255 to absorbance. Assumes that a value of 0 represents 0% transmittance and that 255 represents 100% transmittance. Handles special cases of 0% and 100% transmittance for numerical stability. Forces the result to a numerical value (as opposed to symbolic) using default machine precision. *)
 convertRgbToOD[trans_]:=Module[
@@ -37,13 +33,10 @@ recip=trans/255;
 Switch[recip, 255, 0.000000001, 0, 3.0, _, N[-Log10[recip]]]
 ];
 
-
 (* Convert an RGB tuple (a list with 3 elements in the range of 0 to 255) to an absorbance tuple.*)
 convertRgbTupleToOD[tuple_]:=odTable[[#+1]]&/@tuple;
 
-
 (* Convert a list of RGB tuples to absorbance. The input is a list of 3-element lists where each element is a value between 0 and 255.*)convertRgbTupleArrayToOD[tuples_]:=convertRgbTupleToOD /@ tuples;
-
 
 tupleAboveThresholdQ[tuple_]:=Module[
 {b},
@@ -51,11 +44,7 @@ b=options[beta];
 Or[tuple[[1]]>b,tuple[[2]]>b, tuple[[3]]>b]
 ]
 
-
 thresholdByBeta[odPixels_]:=Select[odPixels, tupleAboveThresholdQ];
 
-
 calcSingularValues[a_]:= N[Sqrt[Sort[Eigenvalues[Transpose[a].a],Greater]]]
-
-
 
