@@ -11,9 +11,12 @@ import re
 # Parsing stdin args to script
 p = argparse.ArgumentParser(description="Read directory to list and class to generate dataset for", prog="gen_dataset.py")
 p.add_argument('-dir', required=True, help='Directory of column csv files')                                                               # Requires a directory location
-p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                                                  # Requires at least one class to be specified
-p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')                                # The labels file 
-p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')                          # 
+p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                              # Requires at least one class to be specified
+p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
+p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  # The output file
+p.add_argument('-labelfile', dest='labelfile', action='store_true')
+p.add_argument('-no-labelfile', dest='labelfile', action='store_false')
+p.set_defaults(labelfile=True)
 
 # args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/final -class G3 G34 -labels /home/nick/git/paratiles/datasets/tile_info/labels.csv -output test.csv'.split()));
 
@@ -30,7 +33,6 @@ else:
    
 print "Classes supplied: ", args['class'] 
 
-
 ################################################################
 # List all the CSV files in the specified directory
 csvfiles = []
@@ -44,7 +46,9 @@ headers = []
 for filename in csvfiles:
     headers.append(re.sub(".csv", "", filename)) # removes .csv from end of filename
 
-headers.append('class')
+if args['labelfile'] == False:		  # If labels are being written to the same file, append the header here
+   headers.append('label')
+
 ################################################################
 # Open labels file, get indices that match the supplied classes
 indices = []
@@ -92,13 +96,22 @@ for csvfile in csvfiles:                                            # for each f
         
     data.append(olines)                                             # then append all of the selected lines to the data list
 
-data.append(labels)                    # Append label indices so they are the last column that get written to the output file
 
-print " ... Done!"
+#################################################################
+# Writing to output file
 
-num_nonzero_removed = 0		    # Keeping track of how many rows were removed for having no nonzero elements
+
+if args['labelfile'] == True:   # if labels should be written to a separate file .. 
+   labels_output = re.sub('.csv', '.class-labels.csv', args['output'].name)	# This will break if the output file is not a .csv file .... 
+   print "Separate labels file specified"
+   labelfile = open(labels_output, 'wb')				# Open a new file
+   labelfile.write('label\n')						# Write the header here .. 
+else:
+   data.append(labels)						    # Append label indices so they are the last column that get written to the output file
 
 print "Writing data to output file .. Please wait."
+
+num_nonzero_removed = 0		    # Keeping track of how many rows were removed for having no nonzero elements
 
 for row in range(0, len(indices)):              # for each row in data
     line = ''
@@ -117,18 +130,27 @@ for row in range(0, len(indices)):              # for each row in data
     # Write line to output file, except if it it has no nonzero elements 
     if (nonzero_elements):
       line += '\n'    
-      out.write(line)    
+      out.write(line)
+
+      if args['labelfile'] == True:   # If labels are written to a separate file .. 
+	 labelfile.write(labels[row]+ '\n') # Write the row index from the labels list, and add a newline
+					    # there is no else because otherwise the header and data should already have label + label data in it
+	 
     else:
       num_nonzero_removed += 1
 
 out.close()
 
-print "Finished writing!"
+if args['labelfile']:
+   labelfile.close()
+
 
 print "Number of rows read: ", len(indices)
 print "Zero-element rows removed: ", num_nonzero_removed
 
 print "Aggregated dataset: ", args['output'].name
+if args['labelfile']:
+   print "Class labels: ", labels_output
 print "Number cols: " , len(data)-1
 print "Number rows: " , len(indices)-num_nonzero_removed
 

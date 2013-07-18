@@ -28,12 +28,12 @@ cls_image = @(I) PC.ClassifyImage(I.data)
 
 % profile on;
    
-for i = 11:length(images)
+for i = 1:length(images)
     
     imagepath = images{i};
     
     % Concat output_dir with regex replaced filename (8.tif -> PC8.tif) 
-    outputpath = [output_dir regexprep(fliplr(strtok(fliplr(images{1}), '/')), '.8.tif', '.PC8.tif')]   % .. don't ask 
+    outputpath = [output_dir regexprep(fliplr(strtok(fliplr(images{i}), '/')), '.8.tif', '.PC8.tif')]   % .. don't ask 
     fprintf('Current Image: %s \n', imagepath);
     
     % Blockproc
