@@ -18,9 +18,9 @@ disp('Running a python script to generate a csv dataset.. This may take a minute
 
 script_path = [env.dataset_dir 'gen_dataset.py'];
 feature_dir = [env.dataset_dir 'final/'];
-sel_classes = {'G3', 'G34'};
+sel_classes = {'G3', 'G34', 'G4'};
 label_path = [env.dataset_dir 'tile_info/' 'labels.csv'];
-output_path = [env.dataset_dir 'test.csv'];
+output_path = [env.dataset_dir 'G3-G34-G4_HIST.csv'];
 separate_labels = '-labelfile';                       % Will write the labels column in a separate file
 % Alternatively: '-no-labelfile'
                                    
