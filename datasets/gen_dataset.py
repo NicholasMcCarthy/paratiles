@@ -7,16 +7,18 @@ from os.path import isfile,isdir,join
 import fnmatch
 import argparse
 import re
+import random
 
 # Parsing stdin args to script
 p = argparse.ArgumentParser(description="Read directory to list and class to generate dataset for", prog="gen_dataset.py")
-p.add_argument('-dir', required=True, help='Directory of column csv files')                                                               # Requires a directory location
+p.add_argument('-dir', nargs = '+', required=True, help='Directory of column csv files')                                                               # Requires a directory location
 p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                              # Requires at least one class to be specified
 p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
 p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  # The output file
 p.add_argument('-labelfile', dest='labelfile', action='store_true')
 p.add_argument('-no-labelfile', dest='labelfile', action='store_false')
 p.set_defaults(labelfile=True)
+p.add_argument('-limit-obs', nargs='+', required=False, help="Limit the number of obs. per class")
 
 # args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/final -class G3 G34 -labels /home/nick/git/paratiles/datasets/tile_info/labels.csv -output test.csv'.split()));
 
@@ -26,25 +28,48 @@ p.set_defaults(labelfile=True)
 
 args = vars(p.parse_args())
 
-if isdir(args['dir']) == False:
-    print "Invalid feature directory supplied. Goober."
-else:
-    print "Specified feature directory: ", args['dir']
+parse_error = False
+
+for mydir in args['dir']:
+   if isdir(mydir) == False:
+       print "Invalid feature directory supplied. Goober."
+       parse_error = True
+   else:
+       print "Specified feature directory: ", mydir 
    
 print "Classes supplied: ", args['class'] 
+
+
+# Don't use the limit option, as I could not get random.sample to work .. 
+if args['limit_obs'] is not None:				       # if limits are set
+   if len(args['limit_obs']) == len(args['class']):	       # If the number of limits specified matches the number of classes
+      limit_counts = []					       # Create new empty vector for limit counts
+      for i in range(0, len(args['class'])):
+	 limit_counts.append(0);
+   else:						       # Otherwise
+      parse_error = True				       # Parse error!
+      print "Must specify observation limit for each class specified"
+
+if parse_error:
+   print "Exiting .. "
+   os.system('exit')
 
 ################################################################
 # List all the CSV files in the specified directory
 csvfiles = []
-for dirc in listdir(args['dir']):
-    if fnmatch.fnmatch(dirc, '*.csv'):
-        csvfiles.append(dirc)
+for mydir in args['dir']:
+   for dirc in listdir(mydir):
+      if fnmatch.fnmatch(dirc, '*.csv'):
+	 mycsv = mydir + '/' + dirc
+	 csvfiles.append(mycsv)
 
 ################################################################
 # Convert filenames to CSV headers
 headers = []
 for filename in csvfiles:
-    headers.append(re.sub(".csv", "", filename)) # removes .csv from end of filename
+    myheader = re.sub(".csv", "", filename)		       # remove the '.csv'
+    myheader = myheader[myheader.rfind('/')+1:len(myheader)]    # remove the 'path/to/file/'
+    headers.append(myheader)				       # append it to list of headers
 
 if args['labelfile'] == False:		  # If labels are being written to the same file, append the header here
    headers.append('label')
@@ -62,7 +87,34 @@ for line in args['labels']:
     idx+=1
 
 args['labels'].close()
-    
+
+# Reducing number of obs  
+if args['limit_obs'] is not None:	     # If limiting the number of obs per class .. 
+   
+   print "Limiting number of obs per class .. "
+   
+   all_idx = []
+
+   for c in args['class']:
+      
+      limit = args['limit_obs'][args['class'].index(c)]
+      sel_idx = []
+
+      for i in range(0, len(labels)):
+
+	 if labels[i] == c:
+	    sel_idx.append(indices[i])
+      
+      
+      sel_idx = [sel_idx[i] for i in random.sample(xrange(len(sel_idx)), limit)]
+
+      all_idx.append(sel_idx)
+      
+   all_idx = sorted(all_idx)
+
+   labels = [labels[i] for i in all_idx]
+   indices = [indices[i] for i in all_idx]
+
 # N = idx # keep number of lines in file .. 
 
 ################################################################
@@ -85,8 +137,8 @@ print "Reading", str(len(csvfiles)), 'files .. Please wait.'
 data = []
 
 for csvfile in csvfiles:                                            # for each file
-    
-    lines = open(args['dir']+'/'+csvfile, 'r').readlines()          # read all lines
+
+    lines = open(csvfile, 'r').readlines()		            # read all lines
     
     olines = []                                                     # olines is output lines
     i = 0;
@@ -99,7 +151,6 @@ for csvfile in csvfiles:                                            # for each f
 
 #################################################################
 # Writing to output file
-
 
 if args['labelfile'] == True:   # if labels should be written to a separate file .. 
    labels_output = re.sub('.csv', '.class-labels.csv', args['output'].name)	# This will break if the output file is not a .csv file .... 

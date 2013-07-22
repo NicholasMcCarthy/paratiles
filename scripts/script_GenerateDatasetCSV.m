@@ -1,43 +1,32 @@
-% This script is roughwork for generating a model for specified classes
-% using a feature set.
-
-% Script makes a call to python script gen_dataset.py that builds the csv file 
-
-% Inputs:
-%       - dir : A directory of column csvs, i.e. feature sets
-%       - class : One or more classes specified in labels csv
-%       - labels : Path to a column csv of labels for each row in directory
-%                       feature sets
-%        - output : The name of the outputted csv file
-
-% Output: output filename written to dataset directory
+% This script gives examples of using the GenerateDatasetCSV function.
 
 %% Script inputs and variables 
 
-disp('Running a python script to generate a csv dataset.. This may take a minute or two, depending on how many files are being read.');
+% The directorys of column csvs to aggregate
+feature_dirs = {'datasets/final', 'datasets/fe.CICM'};
+feature_dirs = cellfun(@(x) [env.root_dir '/' x], feature_dirs, 'UniformOutput', false);
 
-script_path = [env.dataset_dir 'gen_dataset.py'];
-feature_dir = [env.dataset_dir 'final/'];
-sel_classes = {'G3', 'G34', 'G4'};
-label_path = [env.dataset_dir 'tile_info/' 'labels.csv'];
-output_path = [env.dataset_dir 'G3-G34-G4_HIST.csv'];
-separate_labels = '-labelfile';                       % Will write the labels column in a separate file
-% Alternatively: '-no-labelfile'
-                                   
-%% Concat the correct command, etc
+% The classes to select from each row
+% selected_classes = {'G3', 'G4'};
 
-sel_classes_str = repmat('%s ', 1, length(sel_classes));     % Since there can be multiple classes specified .. 
-sprintf_str = ['%s %s %s %s %s ' sel_classes_str ' %s %s %s %s %s']  ;
+% The path to the column file showing the class labels of each row
+label_path = 'datasets/tile_info/labels.csv';
 
-cmd = sprintf(sprintf_str, 'python', script_path, '-dir', feature_dir, '-class', sel_classes{:}, '-labels', label_path, '-output', output_path, separate_labels);
+classlabels = {'G3', 'G34', 'G4', 'G45', 'G5'};
 
-[status, cmdout] = system(cmd);
+for i = 1:length(classlabels)
 
-if (status)         % as 0 is the success 
-    fprintf('There was an error executing this script:\n');
-    fprintf(cmdout);
-else
-    fprintf('Script executed successfully:\n');
-    fprintf(cmdout);
-end
+    fprintf('Generating dataset for: %s \n', classlabels{i});
+
+    % Where to write the aggregated dataset to
+    output_path = ['datasets/' classlabels{i} '_' 'HIST-CICM' '.csv'];
+
+    [status cmdout] = GenerateDatasetCSV( env.root_dir, 'Directory', feature_dirs, 'Labels', label_path, 'Classes', classlabels(i), 'Output', output_path, 'GenerateLabelFile', true);
+
+    disp('Completado!')
     
+end
+
+%% 
+
+
