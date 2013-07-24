@@ -19,4 +19,8 @@ colormapvalidator = @(x) validateattributes(x, {'double'}, {'2d'});
 p.addRequired('ImageLabels', clsimgvalidator);
 p.addParamValue('Colormap', colormap(jet(10)), colormapvalidator) % American english :F 
 
+
+
+
+
 end
