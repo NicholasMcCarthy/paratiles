@@ -12,14 +12,14 @@ masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
 WILDCARD = 'fe.HARALICK'; % date;
 
-output_dir = strcat(env.dataset_dir, WILDCARD, '-', date, '/');
+% output_dir = strcat(env.dataset_dir, WILDCARD, '-', date, '/');
 
 if ~exist(output_dir, 'dir')        % If no directory for this date
     fprintf('Output directory %s does not exist. Creating it.\n', output_dir);
     mkdir(output_dir);               % Create it .. 
 end
 
-env.temp_dir = [pwd '/temp/'];
+env.temp_dir = [pwd '/temp_HARALICK_d1-2_16/'];
 
 tilesize = 256;
     
@@ -147,6 +147,8 @@ disp('Done!');
 % profile report;
 
 %% OUTPUT 
+
+output_dir = [env.root_dir '/datasets/fe.HARALICK/']
 
 % Generate single column csvs with column names as filenames
 for h = 1:length(FE.Features)

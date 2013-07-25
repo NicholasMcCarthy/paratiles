@@ -3,7 +3,7 @@
 %% Script inputs and variables 
 
 % The directorys of column csvs to aggregate
-feature_dirs = {'datasets/final', 'datasets/fe.CICM'};
+feature_dirs = {'datasets/CICM.features', 'datasets/HARALICK.features', 'datasets/HISTOGRAM.features'};
 feature_dirs = cellfun(@(x) [env.root_dir '/' x], feature_dirs, 'UniformOutput', false);
 
 % The classes to select from each row
@@ -30,17 +30,17 @@ end
 %% 
 
 % The directorys of column csvs to aggregate
-feature_dirs = {'datasets/final', 'datasets/fe.CICM'};
+feature_dirs = {'datasets/CICM.features', 'datasets/HARALICK.features', 'datasets/HISTOGRAM.features'};
 feature_dirs = cellfun(@(x) [env.root_dir '/' x], feature_dirs, 'UniformOutput', false);
 
 % The classes to select from each row
 classlabels = {'G3', 'G4'};
 
 % The path to the column file showing the class labels of each row
-label_path = 'datasets/tile_info/labels.csv';
+label_path = 'datasets/class.info/labels.csv';
 
 % Where to write the aggregated dataset to
-output_path = ['datasets/G3-G4_CICM-HIST.test.csv'];
+output_path = ['datasets/G3-G4.test.csv'];
 
 % Call to function that calls the python script
 [status cmdout] = GenerateDatasetCSV( env.root_dir, 'Directory', feature_dirs, 'Labels', label_path, 'Classes', classlabels, 'Output', output_path, 'LabelsFile', true, 'HeadersFile', false);
