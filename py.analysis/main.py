@@ -65,6 +65,13 @@ mydata = VectorDataSet(data, L=labels, featureID = headers)
 print "Attaching to data matrix .."
 mydata.attachLabels(Labels(labels))
 
+## PCA to remove outlier datapoints
+
+
+
+
+
+
 # # Subsetting data
 # data2 = data.__class__(data, classes=['G3', 'G4']) 	
 # # Deleting classes

@@ -10,7 +10,7 @@
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
 masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
-WILDCARD = 'fe.HARALICK'; % date;
+WILDCARD = 'fe.OBJECT'; % date;
 
 % output_dir = strcat(env.dataset_dir, WILDCARD, '-', date, '/');
 
@@ -19,12 +19,17 @@ if ~exist(output_dir, 'dir')        % If no directory for this date
     mkdir(output_dir);               % Create it .. 
 end
 
-env.temp_dir = [pwd '/temp_HARALICK_d1-2_16/'];
+env.temp_dir = [pwd '/temp_HARALICK_d1-2_32/'];
 
 tilesize = 256;
     
 D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20 initial PCRC images. 
-        
+
+% Ensure your local setup allows this ..
+if matlabpool('size') == 0
+    matlabpool local 4
+end
+
 %% INIT Full feature set
 % % 
 % profile on;
@@ -54,16 +59,11 @@ D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20
 % profile off;
 % profile report;
 
-
-% Ensure your local setup allows this ..
-if matlabpool('size') == 0
-    matlabpool local 4
-end
     
 %% Histogram feature set
 
 % numlevels = [16 32 64];
-numlevels = [16 ] %32];
+numlevels = [32 ] %32];
 distances = [1 2 ] %4];
 
 % Histogram features
@@ -77,8 +77,8 @@ distances = [1 2 ] %4];
 haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
 haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'rgb', 'UseStrings', true);
 
-haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', numlevels, 'Distances', distances);
-haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'lab', 'UseStrings', true);
+% haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', numlevels, 'Distances', distances);
+% haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'lab', 'UseStrings', true);
 
 % % CICM Features
 % PC = PixelClassifier;
@@ -106,7 +106,7 @@ func_fe = FE.BlockProcHandle;
 
 % profile on;
 
-for i = 16:length(images)
+for i = fliplr(1:length(images)) 
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
