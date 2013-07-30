@@ -61,15 +61,22 @@ _labels.close()
 
 mydata = VectorDataSet(data, L=labels, featureID = headers)
 
-
 print "Attaching to data matrix .."
 mydata.attachLabels(Labels(labels))
+
+
+
 
 ## PCA to remove outlier datapoints
 
 
 
+#############################
+# Eliminate features
 
+
+
+mydata = VectorDataSet.copy(mydata, classes)
 
 
 # # Subsetting data
@@ -83,15 +90,15 @@ mydata.attachLabels(Labels(labels))
 ###############################################
 # Training an SVM classifier
 
-print "Training SVM Classifier .. "
+# print "Training SVM Classifier .. "
 
-model = svm.SVM(C = 1)
+# model = svm.SVM(C = 1)
 
-k = 5
+# k = 5
 
-print "Performing", k, "fold cross-validation"
+# print "Performing", k, "fold cross-validation"
 
-results = model.cv(mydata, k)
+# results = model.cv(mydata, k)
 
 
 

@@ -29,6 +29,7 @@ p.addParamValue('Classes', @iscellstr);
 p.addParamValue('Output', @ischar);
 p.addParamValue('LabelsFile', true, @islogical);
 p.addParamValue('HeadersFile', true, @islogical);
+p.addParamValue('Limit', -1, @isnumeric);
 
 p.parse(varargin{:});
 
@@ -55,10 +56,19 @@ end
 
 cmd_sprintf_str = ['%s %s %s ' feature_dirs_str ' %s ' sel_classes_str ' %s %s %s %s %s %s']  ; % Construct sprintf string
 
+
 %% Run python script
 
 cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
                                                 '-output', output_path, separate_labels, separate_headers);
+
+if p.Results.Limit ~= -1
+    cmd = [cmd sprintf(' %s %s', '-limit-obs', num2str(p.Results.Limit))];
+end
+
+disp('---------------');
+disp(cmd);
+disp('---------------');
 
 [status, cmdout] = system(cmd, '-echo'); % For stdout as script runs
 % [status, cmdout] = system(cmd);

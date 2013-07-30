@@ -63,8 +63,8 @@ end
 %% Histogram feature set
 
 % numlevels = [16 32 64];
-numlevels = [32 ] %32];
-distances = [1 2 ] %4];
+numlevels = [32] %32];
+distances = [1 2] %4];
 
 % Histogram features
 % histogram_func_rgb = @(I) extract_histogram_features(I, 'NumLevels', numlevels);
@@ -77,8 +77,8 @@ distances = [1 2 ] %4];
 haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
 haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'rgb', 'UseStrings', true);
 
-% haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', numlevels, 'Distances', distances);
-% haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'lab', 'UseStrings', true);
+haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', numlevels, 'Distances', distances);
+haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'lab', 'UseStrings', true);
 
 % % CICM Features
 % PC = PixelClassifier;
@@ -131,9 +131,9 @@ for i = fliplr(1:length(images))
     data = FV;
 
     %     
-%     message = num2str(any(FV));
-%     title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
-%     sendmail('nicholas.mccarthy@gmail.com', title, message);
+    message = num2str(any(FV));
+    title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
+    sendmail('nicholas.mccarthy@gmail.com', title, message);
 
     % save 'data' struct as .mat file on an image by image basis
     matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
@@ -180,6 +180,7 @@ for i = 1:length(images)  % for each image
   
 end
 
+disp('Finishing writing column csv files .. ')
 
 % This function works for a single data matrix, not appending to multiple
 % ones :( 
