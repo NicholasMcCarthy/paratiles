@@ -1,17 +1,10 @@
-<<<<<<< HEAD
 function [selected_file image_info numIFDs] = unpackTiff( file_path, IFD, force )
-
-=======
-function [ output_args ] = unpackTiff( file_path, IFD )
->>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 % UNPACKTIFF % Splits a large multi-IFD TIFF Image
 % Uses the 'tiffsplit' function from the libtiff library
 
 % Input:    Pathname to a valid multilayer .tiff or .scn image
 %           IFD Layer, a valid 
 
-
-<<<<<<< HEAD
 %% Parse inputs
 
 p = inputParser;
@@ -28,13 +21,11 @@ if exist(force, 'var')
 end
 
 fprintf('Tiffsplitting image %s[%i]..', file_path, IFD);
-=======
+
 % Assuming that file_path is a valid .tiff or .scn image
 
-alphabet = 'abcdefghijklmnopqrstuvwxyz'; % Needed for selecting tiffsplit files
 
 % 1. Check file_path is a valid file
->>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 
 if exist(file_path, 'file') == 0
     msg = sprintf('%s is an invalid file', file_path);
@@ -46,11 +37,7 @@ end
 try
     image_info = imfinfo(file_path);
 catch
-<<<<<<< HEAD
     msg = (sprintf('%s is not a valid image', file_path));
-=======
-    msg = sprintf('%s is not a valid image', file_path);
->>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
     error('MATLAB:unpackTiff', msg);
 end
 
@@ -59,7 +46,6 @@ end
 
 T = Tiff(file_path);
 
-<<<<<<< HEAD
 stop = 0;
 
 while stop == 0
@@ -112,7 +98,6 @@ cmd = sprintf('tiffsplit %s %s', file_path, tiffsplit_prefix);
 % 5. Get selected files file_path_aaa.tif 
 
 selected_file = regexprep(file_path, '.tif', sprintf('_aa%s.tif', alphabet(IFD))); % Should refer to the selected IFD
->>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 
 end
 

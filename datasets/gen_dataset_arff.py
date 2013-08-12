@@ -18,11 +18,10 @@ p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help
 p.add_argument('-limit-obs', nargs=1, required=False, help="Limit the number of obs. per class")
 p.add_argument('-assign-zeros', nargs=1, required=False, help='Assign label to zero-vectors (Default: removes)')
 
-args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -assign-zeros NON'.split()));
+# args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -assign-zeros NON'.split()));
 
-print str(args)
 
-# args = vars(p.parse_args())
+args = vars(p.parse_args())
 
 parse_error = False
 
@@ -35,6 +34,18 @@ for mydir in args['dir']:
 	
 print "Classes supplied: ", args['class'] 
 
+<<<<<<< HEAD
+=======
+# Don't use the limit option, as I could not get random.sample to work .. 
+if args['limit_obs'] is not None:				                 # if limits are set
+	if len(args['limit_obs']) == len(args['class']):	        # If the number of limits specified matches the number of classes
+		limit_counts = []					                          # Create new empty vector for limit counts
+		for i in range(0, len(args['class'])):
+			limit_counts.append(0);
+	else:	                                                     # Otherwise
+		parse_error = True				       # Parse error!
+		print "Must specify observation limit for each class specified"
+>>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 
 if parse_error:
 	print "Exiting .. "
@@ -77,6 +88,7 @@ args['labels'].close()
 
 print "Number of obs read:", len(labels)
 
+<<<<<<< HEAD
 
 # Set maximum number of obs of ANY class, rather than class specifics .. 
 if args['limit_obs'] is not None:
@@ -99,6 +111,55 @@ if args['limit_obs'] is not None:
 
 	labels = [labels[i] for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
 	indices = [indices[i] for i in sorted(sampled_idx)]
+=======
+# Reducing number of obs  
+if args['limit_obs'] is not None:	     # If limiting the number of obs per class .. 
+	
+	limit = int(args['limit_obs'][0])
+	print "Limit specified:", limit
+
+# Set maximum number of obs of ANY class, rather than class specifics .. 
+if args['limit_obs'] is not None:
+
+	limit = int(args['limit_obs'][0])
+	sampled_idx = []
+
+	print "Maximum number of obs. will be limited to: ", limit
+
+	for C in args['class']:				# For each class
+
+		class_idx = [idx for idx,val in enumerate(labels) if val == C]   # Get list indices that match this class
+
+		if len(class_idx) > limit: 										# If it's greater than the limit
+			print "Sampling", C, "as limit is reached."
+			class_idx = random.sample(class_idx, limit) 			 	# Sample up to the max allowed 
+
+		sampled_idx = sampled_idx + class_idx							# Append the selected class_idx (sampled or otherwise) to the sampled_idx list
+
+
+	labels = [labels[i] for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
+	indices = [indices[i] for i in sorted(sampled_idx)]
+
+	if len(args['class']) == 1:			  # Only limiting number of selected obs when 1 class is selected (for now - as it is a pain to get working)
+
+		# if len(args['class']) == len(args['limit_obs']) # Multiple classes with multiple limitations .. 
+
+		if len(labels) > limit:			# Check that the limit is lower than the current length of the labels vector
+
+			print "Sampling ", limit, " observations."
+			sample_idx = sorted(random.sample(range(0, len(indices)), limit ))
+
+			indices = [indices[i] for i in sample_idx]
+			labels = [labels[i] for i in sample_idx]
+
+		else:
+
+			print "Invalid limit specified. Limit is higher than population!"
+	else:
+		print "Currently only limiting number of observations when one class is set."
+	
+	# Whatever way I was trying to do this caused an error, so fuck it! We'll limit in preproc
+>>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 
 ################################################################
 # Extracting selected indices from each file
