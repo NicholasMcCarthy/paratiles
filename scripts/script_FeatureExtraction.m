@@ -119,6 +119,8 @@ disp('Done!');
 
 %% OUTPUT 
 
+temp_dir = [env.root_dir '/temp_HARALICK-HISTOGRAM/']
+
 output_dir = [env.root_dir '/datasets/HARALICK2.features/']
 
 % Generate single column csvs with column names as filenames
@@ -132,7 +134,7 @@ for i = 1:length(images)  % for each image
     
     fprintf('image %d \n', i);
     
-    matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
+    matfile = strcat(temp_dir, 'image-', num2str(i), '_temp_data.mat');
     load(matfile);                                                                                                      % loads 'data' struct
     
     for c = 1:size(data, 2)                                                                                         % Append each column
@@ -145,6 +147,7 @@ for i = 1:length(images)  % for each image
             fprintf(fid,   '%0.9f\n', data(r, c));                                                               % append it to file
             
         end
+        
         fclose(fid);
         
     end

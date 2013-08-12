@@ -7,7 +7,6 @@
 % classify an entire image and display the resulting heatmap / likelihood
 % scene (for multiple classes).
 
-
 ModelFilepath = 'models/model_NaiveBayes_TIS-CAN_HISTOGRAM.mat';
 
 loaded = load(ModelFilepath);

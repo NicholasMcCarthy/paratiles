@@ -1,5 +1,8 @@
 % Script for creating and testing an ImageClassifier object
 
+
+images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+
 %% Load TIS-CAN_HISTOGRAM model object
 
 import weka.core.*;
