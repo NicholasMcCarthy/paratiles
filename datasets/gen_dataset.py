@@ -16,17 +16,17 @@ p.add_argument('-class', nargs='+', required=True, help='Class labels to find in
 p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
 p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  # The output file
 
-p.add_argument('-labelfile', dest='labelfile', action='store_true')
-p.add_argument('-no-labelfile', dest='labelfile', action='store_false')
+p.add_argument('-labelfile', dest='labelfile', action='store_true', help='Specify a specific file to write the labels column to.')
+p.add_argument('-no-labelfile', dest='labelfile', action='store_false', help='Write labels as a column in the main csv file.')
 p.set_defaults(labelfile=True)
 
-p.add_argument('-headerfile', dest='headerfile', action='store_true')
-p.add_argument('-no-headerfile', dest='headfile', action='store_false')
+p.add_argument('-headerfile', dest='headerfile', action='store_true', help='Specify a specific file to write the headers row to.')
+p.add_argument('-no-headerfile', dest='headfile', action='store_false', help='Write headers as the top row in the main csv file.')
 p.set_defaults(headerfile=False)
 
 p.add_argument('-limit-obs', nargs='+', required=False, help="Limit the number of obs. per class")
 
-# args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/final -class G3 G34 -labels /home/nick/git/paratiles/datasets/tile_info/labels.csv -output test.csv'.split()));
+# args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G3 -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -no-labelfile -no-headerfile'.split()));
 
 # args = vars(p.parse_args('-dir /home/nick/E/Dropbox/matlab/datasets/final/ -class G3 G34 -labels /home/nick/E/GitHub/paratiles/datasets/tile_info/labels.csv -output test.csv'.split()));
 
@@ -92,8 +92,31 @@ for line in args['labels']:
 
 args['labels'].close()
 
+print "Number of obs read:", len(labels)
+
 # Reducing number of obs  
-#if args['limit_obs'] is not None:	     # If limiting the number of obs per class .. 
+if args['limit_obs'] is not None:	     # If limiting the number of obs per class .. 
+	
+	limit = int(args['limit_obs'][0])
+	print "Limit specified:", limit
+
+	if len(args['class']) == 1:			  # Only limiting number of selected obs when 1 class is selected (for now - as it is a pain to get working)
+
+		# if len(args['class']) == len(args['limit_obs']) # Multiple classes with multiple limitations .. 
+
+		if len(labels) > limit:			# Check that the limit is lower than the current length of the labels vector
+
+			print "Sampling ", limit, " observations."
+			sample_idx = sorted(random.sample(range(0, len(indices)), limit ))
+
+			indices = [indices[i] for i in sample_idx]
+			labels = [labels[i] for i in sample_idx]
+
+		else:
+
+			print "Invalid limit specified. Limit is higher than population!"
+	else:
+		print "Currently only limiting number of observations when one class is set."
 	
 	# Whatever way I was trying to do this caused an error, so fuck it! We'll limit in preproc
 

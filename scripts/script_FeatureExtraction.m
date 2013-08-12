@@ -8,18 +8,18 @@
 %% SETUP
 
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif');          % Wildcard so it selects the large .SCN layer image
-masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
+% masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
 WILDCARD = 'fe.OBJECT'; % date;
 
 % output_dir = strcat(env.dataset_dir, WILDCARD, '-', date, '/');
 
-if ~exist(output_dir, 'dir')        % If no directory for this date
-    fprintf('Output directory %s does not exist. Creating it.\n', output_dir);
-    mkdir(output_dir);               % Create it .. 
-end
+% if ~exist(output_dir, 'dir')        % If no directory for this date
+%     fprintf('Output directory %s does not exist. Creating it.\n', output_dir);
+%     mkdir(output_dir);               % Create it .. 
+% end
 
-env.temp_dir = [pwd '/temp_HARALICK_d1-2_32/'];
+env.temp_dir = [pwd '/temp_HARALICK-HISTOGRAM/'];
 
 tilesize = 256;
     
@@ -30,55 +30,26 @@ if matlabpool('size') == 0
     matlabpool local 4
 end
 
-%% INIT Full feature set
-% % 
-% profile on;
-% 
-% distances = [1 2 4];
-% numlevels = [16 32 64];
-% 
-% haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
-% haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'rgb', 'UseStrings', true);
-% 
-% histogram_func_rgb = @(I) extract_histogram_features(I, 'NumLevels', numlevels); % same numlevels as haralick features
-% histogram_labels_rgb = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Prefix', 'rgb', 'UseStrings', true);
-% 
-% haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', numlevels, 'Distances', distances');
-% haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'lab', 'UseStrings', true);
-% 
-% histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', numlevels); % same numlevels as haralick features
-% histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Prefix', 'lab', 'UseStrings', true);
-% 
-% functions = {haralick_func_rgb haralick_func_lab histogram_func_rgb histogram_func_lab};
-% labels = {haralick_labels_rgb{:} haralick_labels_lab{:} histogram_labels_rgb{:} histogram_labels_lab{:}};
-% 
-% FE = FeatureExtractor(functions, labels);
-% 
-% func_fe = FE.BlockProcHandle;
-% 
-% profile off;
-% profile report;
-
     
-%% Histogram feature set
+%% DEFINE FEATURE SETS TO BE EXTRACTED
 
 % numlevels = [16 32 64];
-numlevels = [32 ] %32];
-distances = [1 2 ] %4];
+numlevels = [32]; %32];
+distances = [1 2]; %4];
 
 % Histogram features
 % histogram_func_rgb = @(I) extract_histogram_features(I, 'NumLevels', numlevels);
 % histogram_labels_rgb = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Prefix', 'rgb', 'UseStrings', true);
-% 
-% histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', numlevels);
-% histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Prefix', 'lab', 'UseStrings', true);
+
+histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', [16 32 64]);
+histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 32 64], 'Prefix', 'lab', 'UseStrings', true);
 
 % Haralick features
-haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', numlevels, 'Distances', distances);
-haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'rgb', 'UseStrings', true);
+haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', [64], 'Distances', [1 2 4]);
+haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', [64], 'Distances', [1 2 4], 'Prefix', 'rgb', 'UseStrings', true);
 
-% haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', numlevels, 'Distances', distances);
-% haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', numlevels, 'Distances', distances, 'Prefix', 'lab', 'UseStrings', true);
+haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', [16 64], 'Distances', [1 2 4]);
+haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 64], 'Distances', [1 2 4], 'Prefix', 'lab', 'UseStrings', true);
 
 % % CICM Features
 % PC = PixelClassifier;
@@ -92,8 +63,8 @@ haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumL
 
 %========================
 
-functions = {  haralick_func_rgb   }; % haralick_func_lab };
-labels = [  haralick_labels_rgb   ]; %haralick_labels_lab ];
+functions = { histogram_func_lab haralick_func_rgb haralick_func_lab }; % haralick_func_lab };
+labels = [  histogram_labels_lab haralick_labels_rgb haralick_labels_lab   ]; %haralick_labels_lab ];
 
 FE = FeatureExtractor(functions, labels);
 
@@ -106,12 +77,12 @@ func_fe = FE.BlockProcHandle;
 
 % profile on;
 
-for i = fliplr(1:length(images)) 
+for i = fliplr(10:12) 
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
  
-    fprintf('Current Image: %s \n', imagepath);
+    fprintf('%d] %s \n', i, imagepath);
     
     % Get number of blocks processed in this image
     numBlocks = ceil( (imageinfo.Width) / tilesize ) * ceil( (imageinfo.Height) / tilesize);
@@ -131,9 +102,9 @@ for i = fliplr(1:length(images))
     data = FV;
 
     %     
-%     message = num2str(any(FV));
-%     title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
-%     sendmail('nicholas.mccarthy@gmail.com', title, message);
+    message = num2str(any(FV));
+    title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
+    sendmail('nicholas.mccarthy@gmail.com', title, message);
 
     % save 'data' struct as .mat file on an image by image basis
     matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
@@ -148,7 +119,7 @@ disp('Done!');
 
 %% OUTPUT 
 
-output_dir = [env.root_dir '/datasets/fe.HARALICK/']
+output_dir = [env.root_dir '/datasets/HARALICK2.features/']
 
 % Generate single column csvs with column names as filenames
 for h = 1:length(FE.Features)
@@ -180,6 +151,7 @@ for i = 1:length(images)  % for each image
   
 end
 
+disp('Finishing writing column csv files .. ')
 
 % This function works for a single data matrix, not appending to multiple
 % ones :( 

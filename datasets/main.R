@@ -23,16 +23,6 @@ func_ds_path = function(x) paste(env$data_dir, x, '_', dataset_name, '.csv', sep
 func_labels_path = function(x) paste(env$data_dir, x, '_', dataset_name, '.labels.csv', sep='')  # Anonymous function to obtain label path
 func_headers_path = function(x) paste(env$data_dir, x, '_', dataset_name, '.headers.csv', sep='')  # Anonymous function to obtain headers path
 
-remove_outliers <- function(x, na.rm=TRUE, ...) {
-   qnt = quantile(x, probs=c(.10, .90), na.rm=na.rm)
-   H = 1.5 * IQR(x, na.rm=na.rm)
-   y = x
-   y[x < (qnt[1]-H)] <- NA
-   y[x > (qnt[2]-H)] <- NA
-   y
-}
-   
-
 
 ## MAIN LOOP
 

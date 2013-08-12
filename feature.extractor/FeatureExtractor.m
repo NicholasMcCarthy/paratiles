@@ -60,7 +60,6 @@ classdef FeatureExtractor
                     
             end;
             
-            
 %             this.LastImage = I;                         % Keep last image
 %             this.LastFeatures = FV;                     % And extracted features .. Just in case
             
