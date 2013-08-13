@@ -1,4 +1,4 @@
-function [predictedClass, classProbs] = wekaClassify(testData,classifier)
+function [predictedClass, classProbs, confusionMatrix] = wekaClassify(testData,classifier)
 % Return the predicted classes for the instances of testData as well as the
 % normalized class distributions. Entry classProbs(i,j) represents the
 % probability that example i is in class j. Classes are indexed from 0 and
@@ -20,9 +20,17 @@ function [predictedClass, classProbs] = wekaClassify(testData,classifier)
 % Written by Matthew Dunham
 
     if(~wekaPathCheck),classProbs = []; return,end
+    
+%     classProbs = zeros(testData.numInstances+1, testData.numClasses); % Pre-allocate probs
+    
     for t=0:testData.numInstances -1  
        classProbs(t+1,:) = (classifier.distributionForInstance(testData.instance(t)))';
     end
+    
     [prob,predictedClass] = max(classProbs,[],2);
-    predictedClass = predictedClass - 1;  
+    
+    predictedClass = predictedClass - 1; 
+    
+    confusionMatrix = confusionmat(predictedClass, testData.attributeToDoubleArray(testData.classIndex));
+    
 end

@@ -15,11 +15,13 @@ p.add_argument('-dir', nargs = '+', required=True, help='Directory of column csv
 p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                              # Requires at least one class to be specified
 p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
 p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  # The output file
-p.add_argument('-limit-obs', nargs='+', required=False, help="Limit the number of obs. per class")
+p.add_argument('-limit-obs', nargs=1, required=False, help="Limit the number of obs. per class")
+p.add_argument('-assign-zeros', nargs=1, required=False, help='Assign label to zero-vectors (Default: removes)')
 
-args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G3 -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000'.split()));
+# args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -assign-zeros NON'.split()));
 
-# args = vars(p.parse_args())
+
+args = vars(p.parse_args())
 
 parse_error = False
 
@@ -32,6 +34,8 @@ for mydir in args['dir']:
 	
 print "Classes supplied: ", args['class'] 
 
+<<<<<<< HEAD
+=======
 # Don't use the limit option, as I could not get random.sample to work .. 
 if args['limit_obs'] is not None:				                 # if limits are set
 	if len(args['limit_obs']) == len(args['class']):	        # If the number of limits specified matches the number of classes
@@ -41,6 +45,7 @@ if args['limit_obs'] is not None:				                 # if limits are set
 	else:	                                                     # Otherwise
 		parse_error = True				       # Parse error!
 		print "Must specify observation limit for each class specified"
+>>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 
 if parse_error:
 	print "Exiting .. "
@@ -55,6 +60,10 @@ for mydir in args['dir']:
 		  mycsv = mydir + '/' + dirc
 		  csvfiles.append(mycsv)
 
+csvfiles = sorted(csvfiles)					# Sort CSV files (makes it easier to do feature extraction later)
+
+print csvfiles
+
 ################################################################
 # Convert filenames to CSV headers
 headers = []
@@ -62,6 +71,7 @@ for filename in csvfiles:
 	myheader = re.sub(".csv", "", filename)		       # remove the '.csv'
 	myheader = myheader[myheader.rfind('/')+1:len(myheader)]    # remove the 'path/to/file/'
 	headers.append(myheader)				       # append it to list of headers
+
 
 ################################################################
 # Open labels file, get indices that match the supplied classes
@@ -78,11 +88,57 @@ args['labels'].close()
 
 print "Number of obs read:", len(labels)
 
+<<<<<<< HEAD
+
+# Set maximum number of obs of ANY class, rather than class specifics .. 
+if args['limit_obs'] is not None:
+
+	limit = int(args['limit_obs'][0])
+	sampled_idx = []
+
+	print "Maximum number of obs. will be limited to: ", limit
+
+	for C in args['class']:				# For each class
+
+		class_idx = [idx for idx,val in enumerate(labels) if val == C]   # Get list indices that match this class
+
+		if len(class_idx) > limit: 										# If it's greater than the limit
+			print "Sampling", C, "as limit is reached."
+			class_idx = random.sample(class_idx, limit) 			 	# Sample up to the max allowed 
+
+		sampled_idx = sampled_idx + class_idx							# Append the selected class_idx (sampled or otherwise) to the sampled_idx list
+
+
+	labels = [labels[i] for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
+	indices = [indices[i] for i in sorted(sampled_idx)]
+=======
 # Reducing number of obs  
 if args['limit_obs'] is not None:	     # If limiting the number of obs per class .. 
 	
 	limit = int(args['limit_obs'][0])
 	print "Limit specified:", limit
+
+# Set maximum number of obs of ANY class, rather than class specifics .. 
+if args['limit_obs'] is not None:
+
+	limit = int(args['limit_obs'][0])
+	sampled_idx = []
+
+	print "Maximum number of obs. will be limited to: ", limit
+
+	for C in args['class']:				# For each class
+
+		class_idx = [idx for idx,val in enumerate(labels) if val == C]   # Get list indices that match this class
+
+		if len(class_idx) > limit: 										# If it's greater than the limit
+			print "Sampling", C, "as limit is reached."
+			class_idx = random.sample(class_idx, limit) 			 	# Sample up to the max allowed 
+
+		sampled_idx = sampled_idx + class_idx							# Append the selected class_idx (sampled or otherwise) to the sampled_idx list
+
+
+	labels = [labels[i] for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
+	indices = [indices[i] for i in sorted(sampled_idx)]
 
 	if len(args['class']) == 1:			  # Only limiting number of selected obs when 1 class is selected (for now - as it is a pain to get working)
 
@@ -103,6 +159,7 @@ if args['limit_obs'] is not None:	     # If limiting the number of obs per class
 		print "Currently only limiting number of observations when one class is set."
 	
 	# Whatever way I was trying to do this caused an error, so fuck it! We'll limit in preproc
+>>>>>>> 39ef07fbe2dce1211edd5ba71e71d8f470fec3b3
 
 ################################################################
 # Extracting selected indices from each file
@@ -129,8 +186,9 @@ data.append(labels)													# ARFF files will always have the label written 
 ################################################################
 # Writing to output file
 
-print "Writing ARFF header data"
 # With ARFF files, headers and labels must be specified in the file itself, so no need to handle writing labels and headers to separate files.
+
+print "Writing data to output file .. Please wait."
 
 out = args['output']
 
@@ -169,11 +227,7 @@ out.write(class_str)   # The last @ATTRIBUTE line that specifies the classes
 #######################
 # Write @DATA section
 
-print "Writing ARFF data .. Please wait."
-
 out.write('@DATA \n')
-
-print "Writing data to output file .. Please wait."
 
 num_nonzero_removed = 0		                                               # Keeping track of how many rows were removed for having no nonzero elements
 
@@ -184,27 +238,35 @@ for row in range(0, len(indices)):                                        # for 
 		
 	line = line[0:len(line)-1]                                             # remove last comma
 
-	# Part for removing empty rows 
-	nonzero_elements = False	
-	for c in range(1,10):                                                  # checking if nonzero numbers are in the row string ..
-		if str(c) in line[0:line.rfind(',')]:                               # checks up to last comma (since the last value is value and may have numbers
-			nonzero_elements = True 
-			break
-	
-	# Write line to output file, except if it it has no nonzero elements 
-	if (nonzero_elements):
-		line += '\n'    
-		out.write(line)
-							
+	if args['assign-zeros'] is None: 	# Part for removing empty rows 
+		nonzero_elements = False	
+		for c in range(1,10):                                                  # checking if nonzero numbers are in the row string ..
+			if str(c) in line[0:line.rfind(',')]:                               # checks up to last comma (since the last value is value and may have numbers
+				nonzero_elements = True 
+				break
+		
+		# Write line to output file, except if it it has no nonzero elements 
+		if (nonzero_elements):
+			line += '\n'    
+			out.write(line)
+								
+		else:
+			num_nonzero_removed += 1
+
 	else:
-		num_nonzero_removed += 1
+		line += '\n'
+		out.write(line)
 
 out.close()
 
 # Print some summary data
 
 print "Number of rows read: ", len(indices)
-print "Zero-element rows removed: ", num_nonzero_removed
+
+if args['assign_zeros'] is None:
+	print "Zero-element rows removed: ", num_nonzero_removed
+else:
+	print "Zero-element rows assigned label", str(args['assign_zeros'][0])
 
 print "--------------"
 print "Dataset: \t", args['output'].name

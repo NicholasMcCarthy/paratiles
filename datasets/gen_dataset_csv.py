@@ -68,6 +68,11 @@ for mydir in args['dir']:
 		  mycsv = mydir + '/' + dirc
 		  csvfiles.append(mycsv)
 
+
+csvfiles = sorted(csvfiles)					# Sort CSV files (makes it easier to do feature extraction later)
+
+print csvfiles
+
 ################################################################
 # Convert filenames to CSV headers
 headers = []

@@ -1,21 +1,18 @@
-function [ output_args ] = repackTiff( file_path )
+function [status] = repackTiff( file_path )
 %REPACKTIFF Given an input file, cleans up any of the unpack'd Tiff files
 %from the paired 'unpackTiff' function.
 
+disp('Re-tiffing image ..');
 
+file_prefix = [ '.' fliplr(strtok(fliplr(file_path), '.'))];
 
-unpacked_tiff = regexprep(file_path, '.tif', '_x*');
+tiffsplit_wildcard = regexprep(file_path, file_prefix, '_aa*'); % Replace .tif with file identifier
 
+%deleted_files = ls(tiffsplit_wildcard);
 
-ls_cmd = sprintf('ls %s', unpacked_tiff);
+rm_cmd = sprintf('rm %s', tiffsplit_wildcard);
 
-[status cmdout] = system(ls_cmd);
-
-deleted_files = cmdout;
-
-rm_cmd = sprintf('rm %s', unpacked_tiff);
-
-[status cmdout] = system(rm_cmd);
+status= system(rm_cmd);
 
 end
 

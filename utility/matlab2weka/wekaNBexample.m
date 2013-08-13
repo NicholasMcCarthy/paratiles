@@ -25,10 +25,9 @@ test =  matlab2weka('iris-test',featureNames,test);
 nb = trainWekaClassifier(train,'bayes.NaiveBayes');
 
 %Test the classifier
-predicted = wekaClassify(test,nb);
+[predicted, classProbs, confusionMatrix] = wekaClassify(test,nb)
 
 %The actual class labels (i.e. indices thereof)
 actual = test.attributeToDoubleArray(classindex-1); %java indexes from 0
 
-errorRate = sum(actual ~= predicted)/30
-
+errorRate = sum(actual ~= predicted)/test.numInstances;

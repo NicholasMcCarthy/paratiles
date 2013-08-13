@@ -1,6 +1,18 @@
 %% This script will serve as a demo for the TileClassifier and
-%% ImageClassifier objects. 
+% ImageClassifier objects. 
 
+
+%% ImageClassifier
+% How to setup an ImageClassifier object and examples of using it to
+% classify an entire image and display the resulting heatmap / likelihood
+% scene (for multiple classes).
+
+ModelFilepath = 'models/model_NaiveBayes_TIS-CAN_HISTOGRAM.mat';
+
+loaded = load(ModelFilepath);
+
+model = loaded.model;
+clear loaded;
 
 %% TileClassifier
 % How to setup a TileClassifier object and examples of using it to classify
@@ -33,8 +45,3 @@ mymodel = loaded.NB;
 clear loaded;
 
 TC = TileClassifier(mymodel, myfeatureextractor, 'Description', 'Uses histogram+haralick rgb features');
-
-%% ImageClassifier
-% How to setup an ImageClassifier object and examples of using it to
-% classify an entire image and display the resulting heatmap / likelihood
-% scene (for multiple classes).
