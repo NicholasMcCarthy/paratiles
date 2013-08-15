@@ -37,7 +37,6 @@ toc
 
 classifier_type = 'weka.classifiers.bayes.NaiveBayes';
 
-
 % model = trainWekaClassifier(D, 'functions.LibSVM');
 
 model = javaObject(classifier_type);
