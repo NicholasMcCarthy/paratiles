@@ -24,7 +24,8 @@ p.add_argument('-headerfile', dest='headerfile', action='store_true', help='Spec
 p.add_argument('-no-headerfile', dest='headfile', action='store_false', help='Write headers as the top row in the main csv file.')
 p.set_defaults(headerfile=False)
 
-p.add_argument('-limit-obs', nargs='+', required=False, help="Limit the number of obs. per class")
+p.add_argument('-limit-obs', nargs=1, required=False, help="Limit the number of obs. per class")
+p.add_argument('-assign-zeros', nargs=1, required=False, help='Assign label to zero-vectors (Default: removes)')
 
 # args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G3 -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -no-labelfile -no-headerfile'.split()));
 
@@ -99,31 +100,27 @@ args['labels'].close()
 
 print "Number of obs read:", len(labels)
 
-# Reducing number of obs  
-if args['limit_obs'] is not None:	     # If limiting the number of obs per class .. 
-	
+# Set maximum number of obs of ANY class, rather than class specifics .. 
+if args['limit_obs'] is not None:
+
 	limit = int(args['limit_obs'][0])
-	print "Limit specified:", limit
+	sampled_idx = []
 
-	if len(args['class']) == 1:			  # Only limiting number of selected obs when 1 class is selected (for now - as it is a pain to get working)
+	print "Maximum number of obs. will be limited to: ", limit
 
-		# if len(args['class']) == len(args['limit_obs']) # Multiple classes with multiple limitations .. 
+	for C in args['class']:				# For each class
 
-		if len(labels) > limit:			# Check that the limit is lower than the current length of the labels vector
+		class_idx = [idx for idx,val in enumerate(labels) if val == C]   # Get list indices that match this class
 
-			print "Sampling ", limit, " observations."
-			sample_idx = sorted(random.sample(range(0, len(indices)), limit ))
+		if len(class_idx) > limit: 										# If it's greater than the limit
+			print "Sampling", C, "as limit is reached."
+			class_idx = random.sample(class_idx, limit) 			 	# Sample up to the max allowed 
 
-			indices = [indices[i] for i in sample_idx]
-			labels = [labels[i] for i in sample_idx]
+		sampled_idx = sampled_idx + class_idx							# Append the selected class_idx (sampled or otherwise) to the sampled_idx list
 
-		else:
 
-			print "Invalid limit specified. Limit is higher than population!"
-	else:
-		print "Currently only limiting number of observations when one class is set."
-	
-	# Whatever way I was trying to do this caused an error, so fuck it! We'll limit in preproc
+	labels = [labels[i] for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
+	indices = [indices[i] for i in sorted(sampled_idx)]
 
 ################################################################
 # Extracting selected indices from each file
@@ -192,24 +189,29 @@ for row in range(0, len(indices)):                                        # for 
 		
 	line = line[0:len(line)-1]                                             # remove last comma
 
-	# Part for removing empty rows 
-	nonzero_elements = False	
-	for c in range(1,10):                                                  # checking if nonzero numbers are in the row string ..
-		if str(c) in line[0:line.rfind(',')]:                               # checks up to last comma (since the last value is value and may have numbers
-			nonzero_elements = True 
-			break
-	
-	# Write line to output file, except if it it has no nonzero elements 
-	if (nonzero_elements):
-		line += '\n'    
-		out.write(line)
+	if args['assign-zeros'] is None: 	# Part for removing empty rows 
+		# Part for removing empty rows 
+		nonzero_elements = False	
+		for c in range(1,10):                                                  # checking if nonzero numbers are in the row string ..
+			if str(c) in line[0:line.rfind(',')]:                               # checks up to last comma (since the last value is value and may have numbers
+				nonzero_elements = True 
+				break
+		
+		# Write line to output file, except if it it has no nonzero elements 
+		if (nonzero_elements):
+			line += '\n'    
+			out.write(line)
 
-		if args['labelfile'] == True:                                       # If labels are written to a separate file .. 
-			labelfile.write(labels[row]+ '\n')                               # Write the row index from the labels list, and add a newline
-							
+			if args['labelfile'] == True:                                       # If labels are written to a separate file .. 
+				labelfile.write(labels[row]+ '\n')                               # Write the row index from the labels list, and add a newline
+								
+		else:
+			num_nonzero_removed += 1
+
 	else:
-		num_nonzero_removed += 1
-
+		line += '\n'
+		out.write(line)
+		
 out.close()
 
 if args['headerfile']:                                                     # If a headerfile was written

@@ -18,7 +18,6 @@ sel_classes = {'G3', 'G34'};
 label_path = [env.dataset_dir 'tile_info/' 'labels.csv'];
 output_path = [env.dataset_dir 'test.csv'];
 
-%
 sel_classes_str = repmat('%s ', 1, length(sel_classes));
 
 sprintf_str = ['%s %s %s %s %s ' sel_classes_str ' %s %s %s %s']
@@ -34,4 +33,3 @@ else
     fprintf('There was an error executing this script:\n');
     fprintf(cmdout);
 end
-    

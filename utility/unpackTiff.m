@@ -1,16 +1,18 @@
-function [selected_file image_info numIFDs] = unpackTiff( varargin )
+function [selected_files image_info numIFDs] = unpackTiff( varargin )
 % UNPACKTIFF % Splits a large multi-IFD TIFF Image
 % Uses the 'tiffsplit' function from the libtiff library
 
 % Input:    Pathname to a valid multilayer .tiff or .scn image
 %           IFD Layer, a valid 
 
+% Output:   Pathname to tiffsplit'd layer(s) 
+
 %% Parse inputs
 
 p = inputParser;
 
 p.addRequired('Filepath', @(x) exist(x, 'file') ~= 0)
-p.addRequired('IFD', @isnumeric);
+p.addRequired('IFD', @(x) isnumeric(x) || all(arrayfun(@isnumeric, x)));    % 
 p.addOptional('Force', 0, @(x) x==true || x==false);
 
 p.parse(varargin{:});
@@ -24,15 +26,15 @@ IFD = p.Results.IFD;
 
 % Assuming that file_path is a valid .tiff or .scn image
 
-fprintf('Tiffsplitting image %s[%i] \n', file_path, IFD);
+for i = 1:length(IFD)
+    fprintf('Unpacking %s[%i] \n', file_path, IFD(i));
+end
 
 % 1. Check file_path is a valid file
-
 if exist(file_path, 'file') == 0
     msg = sprintf('%s is an invalid file', file_path);
     error('MATLAB:unpackTiff', msg);
 end
-
 
 if p.Results.Force == 0 % i.e., not checking the image very hard ..
     
@@ -85,12 +87,18 @@ system(tiffsplit_cmd);
 
 % 5. Get selected files file_path_aaa.tif 
 
-% char(96+IFD) should refer to correct char identifier for selected IFD
-selected_file = regexprep(file_path, file_prefix, sprintf('_aa%s.tif', char(96+IFD))); 
+selected_files = cell(1,length(IFD));
 
-if ~exist(selected_file, 'file')
-    msg = (sprintf('Something went wrong, unpacked Tiff does not exist!'));
-    error('MATLAB:unpackTiff', msg);
+for i = 1:length(IFD)
+    % char(96+IFD) should refer to correct char identifier for selected IFD
+    selected_file = regexprep(file_path, file_prefix, sprintf('_aa%s.tif', char(96+IFD(i))));
+    
+    if ~exist(selected_file, 'file')
+        msg = (sprintf('Something went wrong, unpacked Tiff does not exist!'));
+        error('MATLAB:unpackTiff', msg);
+    end
+    
+    selected_files{i} = selected_file;
 end
 
 end

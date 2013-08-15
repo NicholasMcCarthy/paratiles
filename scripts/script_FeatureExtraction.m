@@ -77,7 +77,7 @@ func_fe = FE.BlockProcHandle;
 
 % profile on;
 
-for i = fliplr(10:12) 
+for i = 10 
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
@@ -136,6 +136,8 @@ for i = 1:length(images)  % for each image
     
     matfile = strcat(temp_dir, 'image-', num2str(i), '_temp_data.mat');
     load(matfile);                                                                                                      % loads 'data' struct
+    
+    size(data)
     
     for c = 1:size(data, 2)                                                                                         % Append each column
         
