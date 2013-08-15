@@ -158,6 +158,8 @@ end
 
 disp('Finishing writing column csv files .. ')
 
+sendmail('nicholas.mccarthy@gmail.com', 'Finished writing CSV files ..', 'Adios');
+
 % This function works for a single data matrix, not appending to multiple
 % ones :( 
 % writeMatrixToCSV(data, FE.Features, output_dir);

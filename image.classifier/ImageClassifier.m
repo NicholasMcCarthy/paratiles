@@ -17,7 +17,7 @@ classdef ImageClassifier
     methods
             
         function this = ImageClassifier(varargin)
-
+            
             p = inputParser;
             p.addRequired('Model', @(x) regexpi(class(x), 'weka.classifiers'));
             p.addRequired('FeatureExtractor', @(x) isa(x, 'FeatureExtractor'));
@@ -27,6 +27,7 @@ classdef ImageClassifier
             this.Model = p.Results.Model;
             this.FeatureExtractor = p.Results.FeatureExtractor;
             this.Tilesize = 256;
+            this.Description = p.Results.Description;
             
             % Data matrix columns need to be resorted before prediction
             [this.FeatureNames this.SortIndex] = sort(this.FeatureExtractor.Features);
@@ -51,13 +52,24 @@ classdef ImageClassifier
                 msg = sprintf('File not found: %s', ImageFilePath);
                 error('MATLAB:ImageClassifier:preditionMap', msg);
             end
+            
+            if matlabpool('size') == 0
+                disp('Matlabpool is not open, opening now ..');
+                matlabpool local 4
+            end
              
             % Get blockproc handle for FeatureExtraction function 
             fe_handle = this.FeatureExtractor.BlockProcHandle;
             
+            disp('Performing feature extraction ..'); 
+            tic;
             % Perform feature extraction using blockproc
             FV = blockproc(ImageFilePath, [this.Tilesize this.Tilesize], fe_handle);
+            toc
             
+            
+            disp('Classifying tiles ..');
+            tic;
             % Dimensions for probability map
             [Xd Yd Zd] = size(FV);
             
@@ -84,6 +96,7 @@ classdef ImageClassifier
                     classProbs(t+1,:) = [0 (model.distributionForInstance(FV.instance(t)))'];
                 end
             end
+            toc;
             
             [prob,predictedClass] = max(classProbs,[],2);
             
