@@ -34,7 +34,6 @@ for mydir in args['dir']:
 	
 print "Classes supplied: ", args['class'] 
 
-=======
 # Don't use the limit option, as I could not get random.sample to work .. 
 if args['limit_obs'] is not None:				                 # if limits are set
 	if len(args['limit_obs']) == len(args['class']):	        # If the number of limits specified matches the number of classes
@@ -186,7 +185,7 @@ for row in range(0, len(indices)):                                        # for 
 		
 	line = line[0:len(line)-1]                                             # remove last comma
 
-	if args['assign-zeros'] is None: 	# Part for removing empty rows 
+	if args['assign_zeros'] is None: 	# Part for removing empty rows 
 		nonzero_elements = False	
 		for c in range(1,10):                                                  # checking if nonzero numbers are in the row string ..
 			if str(c) in line[0:line.rfind(',')]:                               # checks up to last comma (since the last value is value and may have numbers
