@@ -4,21 +4,12 @@ env.weka_dir = [env.root_dir '/weka/weka.jar']
 javaaddpath(env.weka_dir);
 javaaddpath([env.root_dir '/weka/libsvm.jar']);
 
-dataset_path = [env.dataset_dir 'TIS-CAN_HISTOGRAM.arff'];
+dataset_path = [env.dropbox 'G3-G34-G4-G45-G5_HISTOGRAM.arff'];
 
 
 import weka.classifiers.Evaluation;
 
-%% Loading a dataset 
-
-tic
-loader = weka.core.converters.ArffLoader();
-loader.setFile(java.io.File(dataset_path));
-D = loader.getDataSet();
-
-D.setClassIndex(D.numAttributes-1);
-toc
-%% OR Loading a dataset 
+%% LOAD DATASET
 
 tic
 D = loadARFF(dataset_path);
@@ -27,21 +18,16 @@ D.setClassIndex(D.numAttributes-1);
 toc
 
 
-%% Training a classifier
 
-tic
-toc
+%% TRAIN CLASSIFIER
 
+classifier_type = 'functions.LibSVM';
+option_string = {'-b 1'}; % Returns class probabilities
 
-%% Training a classifier
+model = trainWekaClassifier(D, 'functions.LibSVM', option_string);
 
-classifier_type = 'weka.classifiers.bayes.NaiveBayes';
-
-% model = trainWekaClassifier(D, 'functions.LibSVM');
-
-model = javaObject(classifier_type);
-model.buildClassifier(D);
-
+% model = javaObject(classifier_type);
+% model.buildClassifier(D);
 
 
 %% Splitting dataset into test and training sets

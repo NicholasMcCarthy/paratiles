@@ -9,7 +9,9 @@ import weka.*;
 
 %% Get images
 
-images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+% images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+
+images = getFiles(env.image_dir, 'Wildcard', '.8.tif');
 
 %% Start matlabpool
 
@@ -82,8 +84,13 @@ tic;
 % Perform feature extraction using blockproc
 FV = blockproc(ImageFilePath, [this.Tilesize this.Tilesize], this.FeatureExtractor.BlockProcHandle);
 toc
+
 save('image_1-blockproc_features.mat', 'FV');
+
 FVo = FV;
+
+% -----------------------------------
+
 disp('Classifying tiles ..');
 tic;
 
@@ -98,24 +105,43 @@ FV = reshape(FV, Xd * Yd, Zd);
 % Re-sort columns of FV by SortIndex
 FV = FV(:,this.SortIndex);
 
+% -----------------------------------
+% Convert matlab feature vector matric to weka Instances class
 
 tic
-% Convert matlab matrix to weka Instances class
 FVa = matlab2weka('ImageFilePath', this.FeatureNames, FV);
+
+% Create empty label attribute
+label_attribute = javaObject('weka.core.Attribute', javaObject('java.lang.String', 'label'));
+
+% Add label attribute to end of Instances feature vector. Attribute values
+% will be '?'
+FVa.insertAttributeAt(label_attribute, FVa.numAttributes);
+
 toc
 
+%% -----------------------------------
+%% Classifying with matlab svmTrain
+% [mdata,featureNames,targetNDX,stringVals,relationName]
+[FVc FVlabels]  = weka2matlab(D);
+
+svmModel = svmtrain(FV, <TrainclassLabels>, '-b 1 -c <someCValue> -g <someGammaValue>');
+
+
+
+%% 
 numClasses = length(model.distributionForInstance(FVa.instance(1)));
-CP = zeros(Xd*Yd,1);
 
 classProbs = zeros(numBlocks, numClasses+1);
+model.setProbabilityEstimates(true);
 
 tic
 % For each instance / tile .. 
 for t = 0:FVa.numInstances-1
-    disp(t)
+    
     % Check if it's a zero-vector (i.e. skipped)
-    if (any(FVa.instance(t).toDoubleArray))
-        classProbs(t+1,1) = 0;
+    if (~any(FVa.instance(t).toDoubleArray))
+        classProbs(t+1,1) = 1;
     else
         classProbs(t+1,:) = [0 (model.distributionForInstance(FVa.instance(t)))'];
     end
@@ -132,6 +158,8 @@ G = reshape(predictedClass, Xd, Yd);
 
 cmap = jet(numClasses+1);
 
+imshow(G, cmap);
+
 %% Display results side-by-side
 
 thumb_image = imread(image_paths{2});
@@ -144,3 +172,27 @@ subplot(122), imshow(G, cmap);
 %% Clean up tiff files
 
 repackTiff(image_paths{1})
+
+
+%%      
+load fisheriris
+
+svmStruct = svmtrain(meas(1:100,:),species(1:100),'showplot',true);
+
+C = svmclassify(svmStruct,X(P.test,:),'showplot',true);
+
+errRate = sum(Y(P.test)~= C)/P.TestSize  %mis-classification rate
+
+conMat = confusionmat(Y(P.test),C) % the confusion matrix
+
+data_set = matlab2weka('iris data', {'f1', 'f2', 'f3', 'f4'}, meas)
+
+species_attribute = javaObject('weka.core.Attribute', 'species');
+
+matlab2weka('species', {'species'}, species);
+
+data_set.insertAttributeAt(species_attribute, data_set.numAttributes);
+
+insertatt = @(data, i) data.instance(i)
+
+test_model = weka
