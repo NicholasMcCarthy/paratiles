@@ -11,7 +11,7 @@ import weka.*;
 
 % images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
 
-images = getFiles(env.image_dir, 'Wildcard', '.8.tif');
+images = getFiles(env.image_dir, 'Wildcard', '.9.tif');
 
 %% Start matlabpool
 
@@ -174,25 +174,40 @@ subplot(122), imshow(G, cmap);
 repackTiff(image_paths{1})
 
 
-%%      
-load fisheriris
+%% Saving and loading Weka models to Matlab
 
-svmStruct = svmtrain(meas(1:100,:),species(1:100),'showplot',true);
+% Java imports
+import weka.core.Attribute;
+import weka.core.FastVector;
+import java.lang.String;
+import java.util.List;
 
-C = svmclassify(svmStruct,X(P.test,:),'showplot',true);
+% Load dataset
+load fisheriris % loads 'meas', 'species'
 
-errRate = sum(Y(P.test)~= C)/P.TestSize  %mis-classification rate
+% Convert meas and species to ARFF Dataset
+D = matlab2weka('fisheriris', {'f1', 'f2', 'f3', 'f4'}, meas);
+S = matlab2weka('species', {'species'}, species);
+D = D.mergeInstances(D, E); % Easier than creating species as separate instances 
+D.setClassIndex(4); 
 
-conMat = confusionmat(Y(P.test),C) % the confusion matrix
+% Create model
+classifier_type = 'bayes.NaiveBayes';
+model = trainWekaClassifier(D, classifier_type);
 
-data_set = matlab2weka('iris data', {'f1', 'f2', 'f3', 'f4'}, meas)
+% Save model !
+wekaSaveModel('./NaiveBayes_fisheriris.model', model)
 
-species_attribute = javaObject('weka.core.Attribute', 'species');
+%% Filtering a dataset 
 
-matlab2weka('species', {'species'}, species);
+import weka.filters.supervised.instance.Resample;
 
-data_set.insertAttributeAt(species_attribute, data_set.numAttributes);
+sampler = wekaFilter('weka.filters.supervised.instance.Resample', '-S 1 -Z 50');
 
-insertatt = @(data, i) data.instance(i)
+sampler.setInputFormat(D);
 
-test_model = weka
+E = Resample.useFilter(D, sampler);
+
+D.numInstances
+E.numInstances
+

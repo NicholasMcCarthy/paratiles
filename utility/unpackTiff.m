@@ -38,7 +38,7 @@ end
 
 if p.Results.Force == 0 % i.e., not checking the image very hard ..
     
-    disp('Not forcing image.. (gently)');
+%     disp('Not forcing image.. (gently)');
     
 
     % 2. Check that file_path points to a valid image.
@@ -72,7 +72,7 @@ if p.Results.Force == 0 % i.e., not checking the image very hard ..
         error('MATLAB:unpackTiff', msg);
     end
 else
-    disp('Forcing image (may break and stuff)');
+%     disp('Forcing image (may break and stuff)');
 end
 
 % 4. Tiffsplit the image 
@@ -100,6 +100,8 @@ for i = 1:length(IFD)
     
     selected_files{i} = selected_file;
 end
+
+disp('Image unpacked!');
 
 end
 
