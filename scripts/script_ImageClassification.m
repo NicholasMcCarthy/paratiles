@@ -9,9 +9,9 @@ import weka.*;
 
 %% Get images
 
-% images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
 
-images = getFiles(env.image_dir, 'Wildcard', '.9.tif');
+% images = getFiles(env.image_dir, 'Wildcard', '.9.tif');
 
 %% Start matlabpool
 
@@ -21,29 +21,43 @@ end
 
 %% Loading a dataset 
 
-disp('Loading dataset..');tic;
 dataset_path = [env.dataset_dir 'G3-G4-G5-TIS_HISTOGRAM.arff'];
-D = loadARFF(dataset_path);
 
-toc
+fprintf('Loading dataset: %s \n', dataset_path); 
+
+tic;
+D = wekaLoadArff(dataset_path);
+toc;
+
 %% Training a classifier
 
-disp('Training classifier ..');tic;
 classifier_type = 'functions.LibSVM';
+classifier_options = '-B 1'
 
-model = trainWekaClassifier(D, classifier_type);
-toc
+fprintf('Training classifier: %s [%s] \n', classifier_type, classifier_options);
+
+tic;
+
+model = trainWekaClassifier(D, classifier_type, classifier_options);
+model.setProbabilityEstimates(true);    % Shouldn't be needed with set option string, but whatever ..
+
+toc;
 
 sendmail('nicholas.mccarthy@gmail.com', 'SVM Training complete', 'Fucking finally');
 
 %% Read image .. 
 
-disp('Reading image ..');tic;
+
 image_idx = 1;  % The sample image to use
+image_scn = images{image_idx};
+
+disp('Unpacking image: %s [%i]\n', image_scn, image_idx);
+
+tic;
 
 image_paths = unpackTiff(images{image_idx}, [8 10], true); % Unpacks scn image, returns path to 
 
-toc
+toc;
 
 %% Create FeatureExtractor for same features ..
 % NOTE: This is just using histogram features for the time being (and
@@ -68,7 +82,7 @@ ImageFilePath = image_paths{1};
 
 %% The ImageClassifier predictionMap function .. 
 
-this = IC;
+this = IC; % This code block will be moved into ImageClassifier.predict function once ready .. 
 
 imageinfo = imfinfo(ImageFilePath);
 
@@ -85,7 +99,7 @@ tic;
 FV = blockproc(ImageFilePath, [this.Tilesize this.Tilesize], this.FeatureExtractor.BlockProcHandle);
 toc
 
-save('image_1-blockproc_features.mat', 'FV');
+% save('image_1-blockproc_features.mat', 'FV');
 
 FVo = FV;
 
@@ -188,26 +202,33 @@ load fisheriris % loads 'meas', 'species'
 % Convert meas and species to ARFF Dataset
 D = matlab2weka('fisheriris', {'f1', 'f2', 'f3', 'f4'}, meas);
 S = matlab2weka('species', {'species'}, species);
-D = D.mergeInstances(D, E); % Easier than creating species as separate instances 
+D = D.mergeInstances(D, S); % Easier than creating species as separate instances 
 D.setClassIndex(4); 
 
-% Create model
-classifier_type = 'bayes.NaiveBayes';
-model = trainWekaClassifier(D, classifier_type);
+E = D;
+
+%% Old-fashioned cross-fold validation
+
+avgError = wekaCrossValidate(E, 'functions.LibSVM', 5, 1998)
+
+E = wekaApplyFilter(E, 'weka.filters.unsupervised.instance.StratifiedRemoveFolds', '-S 1998');
+
+%% Create model
+classifier_type = 'functions.LibSVM';
+options = '-B 0 -seed 1998'
+
+model = wekaTrainModel(D, classifier_type, options);
+
+model.setProbabilityEstimates(true);
+
+[classPreds classProbs confusionMatrix] = wekaClassify(D, model);
+
+% model.getOptions
 
 % Save model !
-wekaSaveModel('./NaiveBayes_fisheriris.model', model)
+% wekaSaveModel('./NaiveBayes_fisheriris.model', model)
 
 %% Filtering a dataset 
 
-import weka.filters.supervised.instance.Resample;
 
-sampler = wekaFilter('weka.filters.supervised.instance.Resample', '-S 1 -Z 50');
-
-sampler.setInputFormat(D);
-
-E = Resample.useFilter(D, sampler);
-
-D.numInstances
-E.numInstances
 
