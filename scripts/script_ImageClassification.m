@@ -25,9 +25,37 @@ dataset_path = [env.dataset_dir 'G3-G4-G5-TIS_HISTOGRAM.arff'];
 
 fprintf('Loading dataset: %s \n', dataset_path); 
 
-tic;
 D = wekaLoadArff(dataset_path);
+E = wekaApplyFilter(D, 'weka.filters.unsupervised.instance.Resample', '-S 1998 -Z 10');
+
+classifier_type = 'functions.LibSVM';
+options = '-B 0 -seed 1998'
+
+model = wekaTrainModel(E, classifier_type, options);
+
+model.setProbabilityEstimates(true);
+
+[classPreds classProbs confusionMatrix] = wekaClassify(D, model);
 toc;
+
+%% 
+
+model = wekaLoadModel([env.dropbox 'paratiles/models/weka_SVM.model'])
+
+% Not sure if this was trained with option '-B 1'
+model.setProbabilityEstimates(true);
+
+loaded = load('image_1_weka_format-features.mat')
+image_data = loaded.FVa; clear loaded;
+
+import java.util.List;
+
+label_attribute = javaObject('weka.core.Attribute', javaObject('java.lang.String', 'label') );
+
+image_data.insertAttributeAt(label_attribute, image_data.numAttributes);
+
+
+[classPreds classProbs confusionMatrix] = wekaClassify(image_data, model);
 
 %% Training a classifier
 

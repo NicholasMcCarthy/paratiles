@@ -1,4 +1,4 @@
-function saveARFF(filename,wekaOBJ)
+function wekaSaveArff(filename,wekaOBJ)
 % Save a weka java Instances object, holding data, to a weka formatted ARFF
 % file. You can first convert matlab data to a weka java Instances object
 % using the matlab2weka function. 
