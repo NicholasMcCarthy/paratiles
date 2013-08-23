@@ -60,7 +60,7 @@ image_data.insertAttributeAt(label_attribute, image_data.numAttributes);
 %% Training a classifier
 
 classifier_type = 'functions.LibSVM';
-classifier_options = '-B 1'
+classifier_options = '-B 1';
 
 fprintf('Training classifier: %s [%s] \n', classifier_type, classifier_options);
 
@@ -71,7 +71,7 @@ model.setProbabilityEstimates(true);    % Shouldn't be needed with set option st
 
 toc;
 
-sendmail('nicholas.mccarthy@gmail.com', 'SVM Training complete', 'Fucking finally');
+% sendmail('nicholas.mccarthy@gmail.com', 'SVM Training complete', 'Fucking finally');
 
 %% Read image .. 
 
