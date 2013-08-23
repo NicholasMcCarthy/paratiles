@@ -1,35 +1,53 @@
-% This script is roughwork for generating a model for specified classes
-% using a feature set.
+% This script is roughwork for generating a model for specified classes using a feature set.
 
-% Script makes a call to python script gen_dataset.py that builds the csv file 
 
-% Inputs:
-%       - dir : A directory of column csvs, i.e. feature sets
-%       - class : One or more classes specified in labels csv
-%       - labels : Path to a column csv of labels for each row in directory
-%                       feature sets
-%        - output : The name of the outputted csv file
+%% Load dataset(s)
 
-% Output: output filename written to dataset directory
+classlabels = {'G3', 'G34' 'G4', 'G45', 'G5', 'TIS'};
 
-script_path = [env.dataset_dir 'gen_dataset.py'];
-feature_dir = [env.dataset_dir 'final/'];
-sel_classes = {'G3', 'G34'};
-label_path = [env.dataset_dir 'tile_info/' 'labels.csv'];
-output_path = [env.dataset_dir 'test.csv'];
+output_path = ['datasets/' thisclass{:} '_ALL-FEATURES.arff']
 
-sel_classes_str = repmat('%s ', 1, length(sel_classes));
 
-sprintf_str = ['%s %s %s %s %s ' sel_classes_str ' %s %s %s %s']
+%% Filter dataset
 
-cmd = sprintf(sprintf_str, 'python', script_path, '-dir', feature_dir, '-class', sel_classes{:}, '-label', label_path, '-output', output_path);
+classcombns = combnk(classlabels, 2);
 
-[status, cmdout] = system(cmd);
+% For each binary combination of classes
+for i = 1:length(classcombns)
+    
+    [C1 C2] = deal(classcombns{i,:});
+    
+    % Load datasets
+    C1_path = ['datasets/' C1 '_ALL-FEATURES.arff'];
+    C2_path = ['datasets/' C2 '_ALL-FEATURES.arff'];
 
-if (~status)
-    fprintf('Script executed successfully:\n');
-    fprintf(cmdout);
-else
-    fprintf('There was an error executing this script:\n');
-    fprintf(cmdout);
+    fprintf('Loading dataset: %s \n', C1_path);
+    D1 = wekaLoadArff(C1_path);
+
+    fprintf('Loading dataset: %s \n', C2_path);
+    D2 = wekaLoadArff(C2_path);
+    
+    % Join datasets
+    
+    mydata = weka.core.Instances.mergeInstances(D1, D2);
+    
+    % Resample both datasets to equal values
+    num_samples = min(D1.numInstances, D2.numInstances);
+    
+    
+    E = wekaApplyFilter(D, , '-S 1998 -Z 10');
+    filter_name = 'weka.filters.unsupervised.instance.Resample';
+    filter_options = 
+    
+    D1 = wekaApplyFilter
+    
+    
 end
+
+
+
+%% Train Classifier
+
+
+
+%% Evaluate Classifier
