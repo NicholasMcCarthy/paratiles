@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# This is a python script for generating a single csv file from multiple columnar csv files using only
-# specific (i.e. per class) rows
+# Generate datasets by splitting on unique filenames.csv entries (i.e. each image)
+
 from os import listdir
 from os.path import isfile,isdir,join
 import fnmatch
@@ -9,14 +9,19 @@ import argparse
 import re
 import random
 
+# Inputs: 	feature directory(s) 
+#			output file 			
+#  			
+#
+#
+
 # Parsing stdin args to script
 p = argparse.ArgumentParser(description="Read directory to list and class to generate dataset for", prog="gen_dataset.py")
 p.add_argument('-dir', nargs = '+', required=True, help='Directory of column csv files')                                                               # Requires a directory location
-p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                              # Requires at least one class to be specified
-p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
 p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  # The output file
-p.add_argument('-limit-obs', nargs=1, required=False, help="Limit the number of obs. per class")
-p.add_argument('-assign-zeros', nargs=1, required=False, help='Assign label to zero-vectors (Default: removes)')
+p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
+p.add_argument('-filenames', required=True, type=argparse.FileType('r'), help='Column csv of filenames')					  # The filenames file 
+p.add_argument('-assign-ids', nargs=1, required=False, help='Assign sequential numbers to each image set.')
 
 # args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -assign-zeros NON'.split()));
 
@@ -31,21 +36,16 @@ for mydir in args['dir']:
 	else:
 		print "Specified feature directory: ", mydir 
 	
-print "Classes supplied: ", args['class'] 
-
-# Don't use the limit option, as I could not get random.sample to work .. 
-if args['limit_obs'] is not None:				                 # if limits are set
-	if len(args['limit_obs']) == len(args['class']):	        # If the number of limits specified matches the number of classes
-		limit_counts = []					                          # Create new empty vector for limit counts
-		for i in range(0, len(args['class'])):
-			limit_counts.append(0);
-	else:	                                                     # Otherwise
-		parse_error = True				       # Parse error!
-		print "Must specify observation limit for each class specified"
+if args['assign_ids'] == True:				              
+	print "Numbering each row by image."
+else:
+	print "Not numbering each row by image."
 
 if parse_error:
 	print "Exiting .. "
 	os.system('exit')
+
+
 
 ################################################################
 # List all the CSV files in the specified directory
@@ -68,12 +68,45 @@ for filename in csvfiles:
 	myheader = myheader[myheader.rfind('/')+1:len(myheader)]    # remove the 'path/to/file/'
 	headers.append(myheader)				       # append it to list of headers
 
+################################################################
+# Iterate over filenames csv / get indices of unique entries 
+
+# Gets unique entries in a list
+def f4(seq): 
+   # order preserving
+   noDupes = []
+   [noDupes.append(i) for i in seq if not noDupes.count(i)]
+   return noDupes
+
+# 0. Get each line in filenames.csv
+# 1. Get each unique entry in filenames (each image)
+# 2. Get starting and end indices for each unique entry
+# 3. Map indices to unique entries
+# 4. loop over code below with selected range(start, end) for each unique index
+
+# Gets all filenames from csv file
+filenames = args['filenames'].readlines();
+
+# Gets unique filename entries
+Uf = f4(filenames)
+# Strip trailing newline chars
+Uf = [u.strip() for u in Uf]
+
+
+for idx in range(0, len(filenames))
+	
+
+
+
+
 
 ################################################################
 # Open labels file, get indices that match the supplied classes
+
 indices = []
 labels = []
 idx = 0;
+
 for line in args['labels']:
 	if line.strip() in args['class']:
 		indices.append(idx)
@@ -83,7 +116,6 @@ for line in args['labels']:
 args['labels'].close()
 
 print "Number of obs read:", len(labels)
-
 
 # Set maximum number of obs of ANY class, rather than class specifics .. 
 if args['limit_obs'] is not None:
