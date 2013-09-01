@@ -27,7 +27,13 @@ fprintf('Loading dataset: %s \n', dataset_path);
 
 tic;
 D = wekaLoadArff(dataset_path);
+
+E = wekaApplyFilter(D, 'weka.filters.unsupervised.instance.Resample', '-S 1998 -Z 10');
+
 toc;
+
+D.numInstances
+E.numInstances
 
 %% Training a classifier
 
@@ -38,7 +44,7 @@ fprintf('Training classifier: %s [%s] \n', classifier_type, classifier_options);
 
 tic;
 
-model = trainWekaClassifier(D, classifier_type, classifier_options);
+model = trainWekaClassifier(E, classifier_type, classifier_options);
 model.setProbabilityEstimates(true);    % Shouldn't be needed with set option string, but whatever ..
 
 toc;
