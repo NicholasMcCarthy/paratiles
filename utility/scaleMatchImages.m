@@ -39,7 +39,7 @@ end
 
 scaleFactor = X / Xa;
 
-G = imresize(I, scaleFactor);
+G = imresize(I, scaleFactor, 'nearest', 'Dither', true);
 
 end
 

@@ -9,14 +9,14 @@ images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
 
 %%
 
-feature_dirs = {'datasets/HISTOGRAM.features' 'datasets/SHAPE.features'}; %, ...
-%                 'datasets/HARALICK.features', 'datasets/CICM-r1.features'};
+feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
+                'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
             
 label_path = 'datasets/class.info/labels.csv';
 filenames_path = 'datasets/class.info/filenames.csv';
 image_path = fliplr(strtok(fliplr(images{1}), '/'));
 
-[status cmdout] = GenerateImageDataset( env.root_dir, 'Directory', feature_dirs, 'Image', image_path, ... 
+[dataset_path status cmdout] = GenerateImageDataset( env.root_dir, 'Directory', feature_dirs, 'Image', image_path, ... 
                         'Labels', label_path, 'Filenames', filenames_path, 'AssignIDs', 0, 'AssignClasses', 1);
 
 

@@ -31,6 +31,7 @@ p.addParamValue('Output', @ischar);
 p.addParamValue('LabelsFile', false, @islogical);
 p.addParamValue('HeadersFile', false, @islogical);
 p.addParamValue('Limit', -1, @isnumeric);
+p.addParamValue('AssignZeros', -1, @(x) x==true || x == false);
 
 p.parse(varargin{:});
 
@@ -39,6 +40,7 @@ label_path   = p.Results.Labels;
 sel_classes  = p.Results.Classes;
 output_path  = p.Results.Output;
 output_type  = p.Results.Type;
+assign_zeros = tercond(p.Results.AssignZeros == -1, '-assign-zeros', '-no-assign-zeros');
 
 script_name = tercond(strcmpi(output_type, 'csv'), 'gen_dataset_csv.py', 'gen_dataset_arff.py');
 script_path  = [p.Results.Root '/datasets/' script_name ];
@@ -65,15 +67,17 @@ if strcmpi(output_type, 'csv')
 
 elseif strcmpi(output_type, 'arff')
       
-    cmd_sprintf_str = ['%s %s %s ' feature_dirs_str ' %s ' sel_classes_str ' %s %s %s %s %s %s']  ; % Construct sprintf string
+    cmd_sprintf_str = ['%s %s %s ' feature_dirs_str ' %s ' sel_classes_str ' %s %s %s %s %s %s %s']  ; % Construct sprintf string
 
     cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
-                                                    '-output', output_path);
+                                                    '-output', output_path, assign_zeros);
 
     if p.Results.Limit ~= -1
         cmd = [cmd sprintf(' %s %s', '-limit-obs', num2str(p.Results.Limit))];
     end
-
+    
+    disp(cmd);
+    
     [status, cmdout] = system(cmd, '-echo'); % For stdout as script runs
     
 else

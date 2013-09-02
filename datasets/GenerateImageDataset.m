@@ -1,4 +1,4 @@
-function [status cmdout] = GenerateDatasetCSV( varargin )
+function [dataset_name status cmdout] = GenerateDatasetCSV( varargin )
 % Runs gen_dataset.py
 % Used to generate a CSV file from a set of column csv files (i.e. the
 % output of FeatureExtractor
@@ -16,7 +16,6 @@ function [status cmdout] = GenerateDatasetCSV( varargin )
 
 
 %% Parse inputs
-
 
 check_dir = @(x)  ~ any(cellfun( @(y) exist(y, 'dir'), x )==0);
 check_file = @(x) ~ exist(x, 'file') == 0;
@@ -60,5 +59,7 @@ cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '
 disp(cmd);
                                             
 [status, cmdout] = system(cmd, '-echo'); % For stdout as script runs
+
+dataset_name = regexprep(image_path, 'scn', 'arff');
 
 end

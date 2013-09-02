@@ -14,7 +14,7 @@ end
 
 colourDeconvolve = @(block) ColourDeconvolve(block.data);
 
-for i = 1:length(selected_images);
+for i = 4:length(selected_images);
    
     image_path = selected_images{i};
     

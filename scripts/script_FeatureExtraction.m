@@ -37,19 +37,28 @@ end
 numlevels = [32]; %32];
 distances = [1 2]; %4];
 
+%--------- MISSING FEATURE SETS --- % 
+
+haralick_func_rgb1 = @(I) extract_haralick_features(I, 'NumLevels', [16 32], 'Distances', [1 2]);
+haralick_labels_rgb1 = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', [16 32], 'Distances', [1 2], 'Prefix', 'rgb', 'UseStrings', true);
+
+haralick_func_lab1 = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', [64], 'Distances', [4]);
+haralick_labels_lab1 = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [64], 'Distances', [4], 'Prefix', 'lab', 'UseStrings', true);
+
+
 % Histogram features
 % histogram_func_rgb = @(I) extract_histogram_features(I, 'NumLevels', numlevels);
 % histogram_labels_rgb = label_histogram_features('Channels', {'R', 'G', 'B'}, 'NumLevels', numlevels, 'Prefix', 'rgb', 'UseStrings', true);
-
-histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', [16 32 64]);
-histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 32 64], 'Prefix', 'lab', 'UseStrings', true);
-
-% Haralick features
-haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', [64], 'Distances', [1 2 4]);
-haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', [64], 'Distances', [1 2 4], 'Prefix', 'rgb', 'UseStrings', true);
-
-haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', [16 64], 'Distances', [1 2 4]);
-haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 64], 'Distances', [1 2 4], 'Prefix', 'lab', 'UseStrings', true);
+% 
+% histogram_func_lab = @(I) extract_histogram_features(rgb2cielab(I), 'NumLevels', [16 32 64]);
+% histogram_labels_lab = label_histogram_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 32 64], 'Prefix', 'lab', 'UseStrings', true);
+% 
+% % Haralick features
+% haralick_func_rgb = @(I) extract_haralick_features(I, 'NumLevels', [64], 'Distances', [1 2 4]);
+% haralick_labels_rgb = label_haralick_features('Channels', {'R', 'G', 'B'}, 'NumLevels', [64], 'Distances', [1 2 4], 'Prefix', 'rgb', 'UseStrings', true);
+% 
+% haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', [16 64], 'Distances', [1 2 4]);
+% haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 64], 'Distances', [1 2 4], 'Prefix', 'lab', 'UseStrings', true);
 
 % % CICM Features
 % PC = PixelClassifier;
@@ -63,8 +72,8 @@ haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumL
 
 %========================
 
-functions = { histogram_func_lab haralick_func_rgb haralick_func_lab }; % haralick_func_lab };
-labels = [  histogram_labels_lab haralick_labels_rgb haralick_labels_lab   ]; %haralick_labels_lab ];
+functions = { haralick_func_rgb1 haralick_func_lab1 }; 
+labels = [  haralick_labels_rgb1 haralick_labels_lab1   ]; %haralick_labels_lab ];
 
 FE = FeatureExtractor(functions, labels);
 

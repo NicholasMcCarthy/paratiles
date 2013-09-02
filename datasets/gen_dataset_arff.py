@@ -11,12 +11,13 @@ import random
 
 # Parsing stdin args to script
 p = argparse.ArgumentParser(description="Read directory to list and class to generate dataset for", prog="gen_dataset.py")
-p.add_argument('-dir', nargs = '+', required=True, help='Directory of column csv files')                                                               # Requires a directory location
-p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                              # Requires at least one class to be specified
-p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  # The labels file 
-p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  # The output file
+p.add_argument('-dir', nargs = '+', required=True, help='Directory of column csv files')                                            # Requires a directory location
+p.add_argument('-class', nargs='+', required=True, help='Class labels to find in specified labels csv file')                        # Requires at least one class to be specified
+p.add_argument('-labels', required=True, type=argparse.FileType('r'), help='Column csv of labels')					  				# The labels file 
+p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help='Name of output dataset.csv')				  		# The output file
 p.add_argument('-limit-obs', nargs=1, required=False, help="Limit the number of obs. per class")
-p.add_argument('-assign-zeros', nargs=1, required=False, help='Assign label to zero-vectors (Default: removes)')
+p.add_argument('-assign-zeros', dest='assign-zeros', action='store_true', help='Remove zero element vectors.')
+p.add_argument('-no-assign-zeros', dest='assign-zeros', action='store_false', help='Remove zero element vectors.')
 
 # args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -assign-zeros NON'.split()));
 
@@ -34,23 +35,32 @@ for mydir in args['dir']:
 print "Classes supplied: ", args['class'] 
 
 # Don't use the limit option, as I could not get random.sample to work .. 
-if args['limit_obs'] is not None:				                 # if limits are set
-	if len(args['limit_obs']) == len(args['class']):	        # If the number of limits specified matches the number of classes
-		limit_counts = []					                          # Create new empty vector for limit counts
-		for i in range(0, len(args['class'])):
-			limit_counts.append(0);
-	else:	                                                     # Otherwise
-		parse_error = True				       # Parse error!
-		print "Must specify observation limit for each class specified"
+# if args['limit_obs'] is not None:				                 # if limits are set
+# 	if len(args['limit_obs']) == len(args['class']):	        # If the number of limits specified matches the number of classes
+# 		limit_counts = []					                          # Create new empty vector for limit counts
+# 		for i in range(0, len(args['class'])):
+# 			limit_counts.append(0);
+# 	else:	                                                     # Otherwise
+# 		parse_error = True				       # Parse error!
+# 		print "Must specify observation limit for each class specified"
 
 if parse_error:
 	print "Exiting .. "
 	os.system('exit')
 
+
+mydirs    = args['dir']
+myclasses = args['class']
+mylabels  = args['labels']
+myoutput  = args['output']
+mylimit   = args['limit_obs']
+myassnzeros = args['assign-zeros']
+
+
 ################################################################
 # List all the CSV files in the specified directory
 csvfiles = []
-for mydir in args['dir']:
+for mydir in mydirs:
 	for dirc in listdir(mydir):
 		if fnmatch.fnmatch(dirc, '*.csv'):
 		  mycsv = mydir + '/' + dirc
@@ -74,26 +84,26 @@ for filename in csvfiles:
 indices = []
 labels = []
 idx = 0;
-for line in args['labels']:
-	if line.strip() in args['class']:
+for line in mylabels:
+	if line.strip() in myclasses:
 		indices.append(idx)
 		labels.append(line.strip())
 	idx+=1
 
-args['labels'].close()
+mylabels.close()
 
 print "Number of obs read:", len(labels)
 
 
 # Set maximum number of obs of ANY class, rather than class specifics .. 
-if args['limit_obs'] is not None:
+if mylimit is not None:
 
-	limit = int(args['limit_obs'][0])
+	limit = int(mylimit[0])
 	sampled_idx = []
 
 	print "Maximum number of obs. will be limited to: ", limit
 
-	for C in args['class']:				# For each class
+	for C in myclasses:				# For each class
 
 		class_idx = [idx for idx,val in enumerate(labels) if val == C]   # Get list indices that match this class
 
@@ -136,7 +146,7 @@ data.append(labels)													# ARFF files will always have the label written 
 
 print "Writing data to output file .. Please wait."
 
-out = args['output']
+out = myoutput
 
 #######################
 # Write ARFF info header 
@@ -148,7 +158,7 @@ out.write('% Created by: Nick McCarthy <nicholas.mccarthy@gmail.com>\n\n')
 # Write @RELATION section
 
 relation_str = '@RELATION '
-for c in args['class']:
+for c in myclasses:
 	relation_str += c + '-'
 
 relation_str += 'data\n\n'
@@ -163,10 +173,10 @@ for header in headers:
 	out.write('@ATTRIBUTE ' + header + ' NUMERIC\n')
 
 class_str = '@ATTRIBUTE label {'
-for c in args['class']:
+for c in myclasses:
 	class_str += c + ','
 
-class_str = class_str[0:len(class_str)-1] + '}\n\n'					
+class_str = class_str[0:len(class_str)-1] + '}\n\n'
 
 out.write(class_str)   # The last @ATTRIBUTE line that specifies the classes
 
@@ -184,7 +194,7 @@ for row in range(0, len(indices)):                                        # for 
 		
 	line = line[0:len(line)-1]                                             # remove last comma
 
-	if args['assign_zeros'] is None: 	# Part for removing empty rows 
+	if myassnzeros is True: 	# Part for removing empty rows 
 		nonzero_elements = False	
 		for c in range(1,10):                                                  # checking if nonzero numbers are in the row string ..
 			if str(c) in line[0:line.rfind(',')]:                               # checks up to last comma (since the last value is value and may have numbers
@@ -209,10 +219,8 @@ out.close()
 
 print "Number of rows read: ", len(indices)
 
-if args['assign_zeros'] is None:
+if myassnzeros is True:
 	print "Zero-element rows removed: ", num_nonzero_removed
-else:
-	print "Zero-element rows assigned label", str(args['assign_zeros'][0])
 
 print "--------------"
 print "Dataset: \t", args['output'].name

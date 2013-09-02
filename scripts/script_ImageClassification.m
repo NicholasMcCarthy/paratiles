@@ -1,44 +1,83 @@
 % Script to create a model from a set of features, classify an image and
 % display it
 
-env.weka_dir = [env.root_dir '/weka/weka.jar'];
-javaaddpath(env.weka_dir);
-javaaddpath([env.root_dir '/weka/libsvm.jar']);
 
+%% SETUP 
+
+% Import weka thingies, just in case
 import weka.*;
 
-%% Get images
-
-images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
-
-% images = getFiles(env.image_dir, 'Wildcard', '.9.tif');
-
-%% Start matlabpool
-
+% Start matlabpool
 if matlabpool('size') == 0
     matlabpool local 4
 end
 
 %% Loading a dataset 
 
-dataset_path = [env.dataset_dir 'G3-G4-G5-TIS_HISTOGRAM.arff'];
+dataset_path = [env.dataset_dir 'all-classes_lab-shape-cicm.arff'];
 
 fprintf('Loading dataset: %s \n', dataset_path); 
 
-D = wekaLoadArff(dataset_path);
+tic
+% Full dataset
+D = wekaLoadArff(dataset_path); 
+toc
+
+fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.numInstances);
+
+
+fprintf('Reducing dataset size.');
+tic;
+% Filtered dataset (for training)
 E = wekaApplyFilter(D, 'weka.filters.unsupervised.instance.Resample', '-S 1998 -Z 10');
+toc;
+
+fprintf('Reduced dataset: %i features, %i instances \n', E.numAttributes, E.numInstances);
+
+%% Training SVM Classifier
 
 classifier_type = 'functions.LibSVM';
-options = '-B 0 -seed 1998'
+options = '-B 1 -seed 1998';
 
+% Warning: using -h 0 may be faster (-h shrinking: whether to use shrinking heuristics, 0 or 1 (default 1))
+
+disp('Training classifier on reduced dataset.')
+tic;
 model = wekaTrainModel(E, classifier_type, options);
-
 model.setProbabilityEstimates(true);
+toc;
 
+%% Training NaiveBayes classifier
+
+%            Valid options are:
+%  -K
+%   Use kernel density estimator rather than normal
+%   distribution for numeric attributes
+%  -D
+%   Use supervised discretization to process numeric attributes
+%  
+%  -O
+%   Display model in old format (good when there are many classes)
+
+
+classifier_type = 'bayes.NaiveBayes';
+options = '-O' ;
+
+disp('Training classifier on reduced dataset.')
+tic;
+model = wekaTrainModel(E, classifier_type, options);
+toc;
+
+%% Test Classifier
+
+disp('Testing classifier on larger dataset.');
+tic;
 [classPreds classProbs confusionMatrix] = wekaClassify(D, model);
 toc;
 
-%% 
+%% Cross-validate model on full dataset
+
+% res = wekaCrossValidate(model, D);
 
 model = wekaLoadModel([env.dropbox 'paratiles/models/weka_SVM.model'])
 
@@ -56,6 +95,66 @@ image_data.insertAttributeAt(label_attribute, image_data.numAttributes);
 
 
 [classPreds classProbs confusionMatrix] = wekaClassify(image_data, model);
+
+
+%% Generate image datasets and classify -> output classProbs etc 
+
+images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+
+for i = 16:length(images)
+
+    disp(i);
+    image_path = images{i};
+
+    % Get image info 
+    disp('Retrieving image info ..');tic;
+    ifd_paths = unpackTiff(image_path, 8, 1);       % Unpack image
+    imageinfo = imfinfo(ifd_paths{1});              % Get big layer info
+    repackTiff(image_path);                         % Repack image 
+    toc;
+    width = imageinfo.Width;
+    height = imageinfo.Height;
+    tilesize = 256;
+
+    numBlocks = ceil( (width) / tilesize ) * ceil( (height) / tilesize)
+    
+    % Generate image dataset .. 
+    feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
+                    'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
+
+    label_path = 'datasets/class.info/labels.csv';
+    filenames_path = 'datasets/class.info/filenames.csv';
+    sel_path = fliplr(strtok(fliplr(image_path), '/'));
+
+    [dataset_name status cmdout] = GenerateImageDataset( env.root_dir, 'Directory', feature_dirs, 'Image', sel_path, ... 
+                            'Labels', label_path, 'Filenames', filenames_path, 'AssignIDs', 0, 'AssignClasses', 1);
+    
+    dataset_path = [env.root_dir '/' dataset_name];  
+    
+    image_data = wekaLoadArff(dataset_path);
+    
+    disp('Classifying image ..');tic;
+    
+    [classPreds classProbs confusionMatrix] = wekaClassify(image_data, model);
+    toc;
+
+    % Reshape classPreds to image dimensions .. 
+    numXtiles = ceil(width / 256);
+    numYtiles = ceil(height / 256);
+    cls_image = reshape(classPreds, numYtiles, numXtiles);
+    
+    image_cls_data = struct('classPreds', classPreds, 'classProbs', classProbs, 'confusionMatrix', confusionMatrix, 'image', cls_image);
+    
+    data_path = [env.root_dir '/cls_data/' regexprep(sel_path, '.scn', '-NaiveBayes_cls-data.mat')]
+    
+    save(data_path, 'image_cls_data');
+    
+end
+
+sendmail('nicholas.mccarthy@gmail.com', 'Image classification data', 'Completado! Oy vey!');
+
+%% BELOW HERE IS NOW ROUGHWORK
+
 
 %% Training a classifier
 
