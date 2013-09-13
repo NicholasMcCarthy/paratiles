@@ -25,7 +25,6 @@ toc
 
 fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.numInstances);
 
-
 fprintf('Reducing dataset size.');
 tic;
 % Filtered dataset (for training)
@@ -73,7 +72,22 @@ toc;
 disp('Testing classifier on larger dataset.');
 tic;
 [classPreds classProbs confusionMatrix] = wekaClassify(D, model);
+
+
+errorRate = sum(D.attributeToDoubleArray(D.classIndex) ~= classPreds)/D.numInstances;
+
 toc;
+
+%% Save classifier model
+
+model_dir = [env.dropbox, '/paratiles/models/'];
+
+model_ver = '1.1';
+model_name = [classifier_type '-' regexprep(fliplr(strtok(fliplr(dataset_path), '/')), 'arff', [model_ver '.model'])]
+
+model_path = [model_dir model_name];
+
+wekaSaveModel(model_path, model);
 
 %% Cross-validate model on full dataset
 
@@ -99,9 +113,16 @@ image_data.insertAttributeAt(label_attribute, image_data.numAttributes);
 
 %% Generate image datasets and classify -> output classProbs etc 
 
+% Generate 
+output_dir = [env.root_dir '/cls_data-' ver '/']
+
+if ~exist(output_dir, 'dir')
+    mkdir(output_dir);
+end
+
 images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
 
-for i = 16:length(images)
+for i = 1:length(images)
 
     disp(i);
     image_path = images{i};
@@ -145,7 +166,7 @@ for i = 16:length(images)
     
     image_cls_data = struct('classPreds', classPreds, 'classProbs', classProbs, 'confusionMatrix', confusionMatrix, 'image', cls_image);
     
-    data_path = [env.root_dir '/cls_data/' regexprep(sel_path, '.scn', '-NaiveBayes_cls-data.mat')]
+    data_path = [output_dir regexprep(sel_path, '.scn', '-NaiveBayes_cls-data.mat')]
     
     save(data_path, 'image_cls_data');
     
@@ -342,7 +363,7 @@ E = wekaApplyFilter(E, 'weka.filters.unsupervised.instance.StratifiedRemoveFolds
 
 %% Create model
 classifier_type = 'functions.LibSVM';
-options = '-B 0 -seed 1998'
+options = '-B 0 -seed 1998';
 
 model = wekaTrainModel(D, classifier_type, options);
 

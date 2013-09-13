@@ -6,4 +6,3 @@ I = uint8(I * quanta);
 G = double(I) / quanta;
 
 end
-

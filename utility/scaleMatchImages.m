@@ -15,7 +15,8 @@ p = inputParser;
 p.addRequired('Image', @isnumeric);
 p.addRequired('X', @isnumeric);
 p.addRequired('Y', @isnumeric);
-p.addOptional('Pad', 0, @(x) x == true || x == false);
+p.addParamValue('Type', 'nearest', @(x) any(strcmp(x, {'nearest', 'bilinear', 'bicubic'})));
+p.addParamValue('Pad', 0, @(x) x == true || x == false);
 
 p.parse(varargin{:});
 
@@ -24,6 +25,7 @@ I = p.Results.Image;
 X = p.Results.X;
 Y = p.Results.Y;
 pad = p.Results.Pad;
+type = p.Results.Type;
 
 
 %% Main function
@@ -39,7 +41,7 @@ end
 
 scaleFactor = X / Xa;
 
-G = imresize(I, scaleFactor, 'nearest', 'Dither', true);
+G = imresize(I, scaleFactor, type, 'Dither', true);
 
 end
 

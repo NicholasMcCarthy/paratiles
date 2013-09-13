@@ -55,7 +55,6 @@ if strcmpi(output_type, 'csv')
     
     cmd_sprintf_str = ['%s %s %s ' feature_dirs_str ' %s ' sel_classes_str ' %s %s %s %s %s %s']  ; % Construct sprintf string
 
-
     cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
                                                     '-output', output_path, separate_labels, separate_headers);
 

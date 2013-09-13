@@ -8,7 +8,7 @@ feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
 
 label_path = 'datasets/class.info/labels.csv';
 
-classlabels = {'G3', 'G34', 'G4', 'G45', 'G5', 'NON', 'TIS'};
+classlabels = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
 spec_limit = 50000;
 
 output_type = 'arff';

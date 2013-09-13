@@ -105,7 +105,7 @@ selected_files = cell(1,length(IFD));
 
 for i = 1:length(IFD)
     % char(96+IFD) should refer to correct char identifier for selected IFD
-    selected_file = regexprep(file_path, file_prefix, sprintf('_aa%s.tif', char(96+IFD(i))));
+    selected_file = regexprep(file_path, file_prefix, sprintf('_aa%s.tif', char(96+IFD(i))))
     
     if ~exist(selected_file, 'file')
         msg = (sprintf('Something went wrong, unpacked Tiff does not exist!'));

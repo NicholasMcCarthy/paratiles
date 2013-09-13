@@ -19,7 +19,7 @@ WILDCARD = 'fe.OBJECT'; % date;
 %     mkdir(output_dir);               % Create it .. 
 % end
 
-env.temp_dir = [pwd '/temp_HARALICK-HISTOGRAM/'];
+temp_dir = [env.root_dir '/temp_HARALICK-MISSING/'];
 
 tilesize = 256;
     
@@ -86,7 +86,7 @@ func_fe = FE.BlockProcHandle;
 
 % profile on;
 
-for i = 10 
+for i = 1:length(images)
     
     imagepath = images{i};
     imageinfo = imfinfo(images{i});
@@ -110,15 +110,13 @@ for i = 10
     
     data = FV;
 
-    %     
-    message = num2str(any(FV));
-    title = strcat('Matlab Processing:  ', num2str(i), '/', num2str(length(images)));
-    sendmail('nicholas.mccarthy@gmail.com', title, message);
-
     % save 'data' struct as .mat file on an image by image basis
-    matfile = strcat(env.temp_dir, 'image-', num2str(i), '_temp_data.mat');
+    matfile = strcat(temp_dir, 'image-', num2str(i), '_temp_data.mat');
     save(matfile, 'data');
     
+    msg = sprintf('%s data written \n', matfile);
+    title = sprintf('Feature Extraction: Image %i', i);
+    sendmail('nicholas.mccarthy@gmail.com', title, msg);
 end
 
 disp('Done!');
@@ -128,9 +126,7 @@ disp('Done!');
 
 %% OUTPUT 
 
-temp_dir = [env.root_dir '/temp_HARALICK-HISTOGRAM/']
-
-output_dir = [env.root_dir '/datasets/HARALICK2.features/']
+output_dir = [env.root_dir '/datasets/HARALICK-MISSING/']
 
 % Generate single column csvs with column names as filenames
 for h = 1:length(FE.Features)
@@ -139,35 +135,60 @@ for h = 1:length(FE.Features)
     fclose(fid);
 end
 
-for i = 1:length(images)  % for each image
+linesWritten = 0;
+columnsWritten = 0;
+totalLines = 0;
+
+for i = 1:5 %length(images)                        % for each image
     
     fprintf('image %d \n', i);
     
     matfile = strcat(temp_dir, 'image-', num2str(i), '_temp_data.mat');
-    load(matfile);                                                                                                      % loads 'data' struct
+    load(matfile);                                                      % loads 'data' struct
     
     size(data)
-    
-    for c = 1:size(data, 2)                                                                                         % Append each column
+    columnsWritten = 0;
+    totalLines = totalLines + size(data, 1);
+
+    for c = 1:size(data, 2)                                             % Append each column
         
-        filename = strcat(output_dir, FE.Features{c}, '.csv');                                       % Column filename 
-        fid = fopen(filename, 'a');                                                                               % Open to append
+        filename = strcat(output_dir, FE.Features{c}, '.csv');          % Column filename 
+        fid = fopen(filename, 'a');                                     % Open to append
         
-        for r = 1:size(data, 1)                                                                                     %  For each row in 'data'
+        for r = 1:size(data, 1)                                         %  For each row in 'data'
             
-            fprintf(fid,   '%0.9f\n', data(r, c));                                                               % append it to file
+            fprintf(fid,   '%0.9f\n', data(r, c));                      % append it to file
             
+            linesWritten = linesWritten + 1;
         end
         
         fclose(fid);
         
     end
-  
+    fprintf('%i lines written \n', linesWritten);
+end
+
+fprintf('Each csv file should have %i lines \n', totalLines);
+
+% Verify number of lines per csv file
+
+for h = 1:length(FE.Features)
+    filename = strcat(output_dir, FE.Features{h}, '.csv');
+    
+    cmd = sprintf('grep -c ^$ %s', filename);
+    
+    [status result] = system(cmd);
+    
+    result = str2double(result);
+    
+    if result ~= 0
+        fprintf('%s has %i empty lines .. \n', filename, result);
+    end
 end
 
 disp('Finishing writing column csv files .. ')
 
-sendmail('nicholas.mccarthy@gmail.com', 'Finished writing CSV files ..', 'Adios');
+% sendmail('nicholas.mccarthy@gmail.com', 'Finished writing CSV files ..', 'Adios');
 
 % This function works for a single data matrix, not appending to multiple
 % ones :( 

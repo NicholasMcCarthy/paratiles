@@ -166,7 +166,7 @@ for header in headers:
 	out.write('@ATTRIBUTE ' + header + ' NUMERIC\n')
 
 if myassignclasses == True:
-	class_str = '@ATTRIBUTE label {G3, G34, G4, G45, G5, NON, TIS}\n'
+	class_str = '@ATTRIBUTE label {NON, TIS, G3, G34, G4, G45, G5}\n'
 else:
 	class_str = '@ATTRIBUTE label {'
 	myclasses = sorted(finduniq(labels))

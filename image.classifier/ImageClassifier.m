@@ -107,7 +107,6 @@ classdef ImageClassifier
         % Creates a handle for blockproc (i.e. will classify a single tile)
        function func_handle = BlockProcHandle(this);
        
-           
            func_handle = @(block_struct) shiftdim(this.ExtractFeatures(block_struct.data), -1);
             
        end
