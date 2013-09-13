@@ -87,7 +87,7 @@ model_name = [classifier_type '-' regexprep(fliplr(strtok(fliplr(dataset_path), 
 
 model_path = [model_dir model_name];
 
-wekaSaveModel(model_path, model);
+% wekaSaveModel(model_path, model);
 
 %% Cross-validate model on full dataset
 
@@ -114,7 +114,7 @@ image_data.insertAttributeAt(label_attribute, image_data.numAttributes);
 %% Generate image datasets and classify -> output classProbs etc 
 
 % Generate 
-output_dir = [env.root_dir '/cls_data-' ver '/']
+output_dir = [env.root_dir '/cls_data-' model_ver '/']
 
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
@@ -122,7 +122,7 @@ end
 
 images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
 
-for i = 1:length(images)
+for i = 15:length(images)
 
     disp(i);
     image_path = images{i};
@@ -169,6 +169,12 @@ for i = 1:length(images)
     data_path = [output_dir regexprep(sel_path, '.scn', '-NaiveBayes_cls-data.mat')]
     
     save(data_path, 'image_cls_data');
+    
+    title = sprintf('Image %i classified', i);
+    msg = 'Hurrah!';
+    
+    sendmail('nicholas.mccarthy@gmail.com', 'Image classification data', 'Completado! Oy vey!');
+
     
 end
 

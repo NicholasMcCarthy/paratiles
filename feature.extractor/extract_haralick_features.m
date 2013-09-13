@@ -34,10 +34,6 @@ function feature_vector = extract_haralick_features( varargin )
 % 
 % mydataset = mymat2dataset(fv, fv_labels);
 
-
-
-
-
 %% PARSE INPUTS
 
 inputs = ParseInputs(varargin{:});

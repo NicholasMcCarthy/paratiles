@@ -7,12 +7,54 @@
 images = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', '.8.tif'); 
 masks = getFiles(env.image_dir, 'Suffix', '.tif', 'Wildcard', 'mask-PT.gs');
 
-
 D_length = 2079159;         % Preallocating number of rows when blockproc'ing 20 initial PCRC images. 
 
-glcm_data = struct(D_length);
+% glcm_data = struct();
+
+tilesize = 256;
+
+if matlabpool('size') == 0
+    matlabpool local 4;
+end
 
 
+%% Create blockproc func .. 
+
+levels = [16 32 64];
+distances = [1 2 4];
+
+offsets = [0 d; -d d; -d 0; -d -d];       % Offset vector: 0, 45, 90, 135 degrees
+
+functions = {};
+labels = [];
+channels = ['L' 'A' 'B'];
+
+c = 1;
+
+for z = 1:3
+    for nl = 1:length(levels);
+        for d = 1:length(distances);
+                        
+            offsets = [0 d; -d d; -d 0; -d -d];                 % Offset vector: 0, 45, 90, 135 degrees
+            
+            tfunc = @(I) im2glcm(I(:,:,z), nl, offsets);
+            
+            label = ['glcm_' channels(z) '_d' num2str(d) '_q' num2str(nl)];
+            
+            functions{c} = tfunc;
+            labels = [labels ; label];
+            
+            c = c + 1;
+            
+        end
+    end
+end
+
+labels = cellstr(labels);
+
+FE = FeatureExtractor(functions, labels);
+
+func_fe = FE.BlockProcHandle;
 
 %% RUN
 
@@ -29,14 +71,31 @@ for i = 1:length(images)
     numBlocks = ceil( (imageinfo.Width) / tilesize ) * ceil( (imageinfo.Height) / tilesize);
     
     % Pre-allocate 'data' struct
-    data = zeros(numBlocks, length(FE.Features));
+%     data = zeros(numBlocks, length(FE.Features));
+    glcm_data(numBlocks) = struct();
     
     % Blockproc
-    tic
-    
-    FV = blockproc(imagepath, [tilesize tilesize], func_fe);
-    
-    mytime = toc;
+%     FV = blockproc(imagepath, [tilesize tilesize], func_fe);
+
+     parfor z = 1:3
+        for nl = 1:length(levels);
+            for d = 1:length(distances);
+
+                offsets = [0 d; -d d; -d 0; -d -d];                 % Offset vector: 0, 45, 90, 135 degrees
+
+                tfunc = @(I) im2glcm(I(:,:,z), nl, offsets);
+
+                label = ['glcm_' channels(z) '_d' num2str(d) '_q' num2str(nl)];
+
+                functions{c} = tfunc;
+                labels = [labels ; label];
+
+                c = c + 1;
+
+            end
+        end
+    end
+
     % Reshape from image to feature vector
     FV = reshape(FV, size(FV, 1) * size(FV, 2), size(FV, 3));   
     
