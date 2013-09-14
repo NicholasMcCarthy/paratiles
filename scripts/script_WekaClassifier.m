@@ -4,7 +4,7 @@ env.weka_dir = [env.root_dir '/weka/weka.jar']
 javaaddpath(env.weka_dir);
 javaaddpath([env.root_dir '/weka/libsvm.jar']);
 
-dataset_path = [env.dropbox 'G3-G34-G4-G45-G5_HISTOGRAM.arff'];
+dataset_path = [env.dataset_dir 'all-classes_lab-shape-cicm.arff'];
 
 
 import weka.classifiers.Evaluation;
@@ -12,7 +12,7 @@ import weka.classifiers.Evaluation;
 %% LOAD DATASET
 
 tic
-D = loadARFF(dataset_path);
+D = wekaLoadArff(dataset_path);
 
 D.setClassIndex(D.numAttributes-1);
 toc
