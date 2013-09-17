@@ -42,6 +42,8 @@ output_path  = p.Results.Output;
 output_type  = p.Results.Type;
 assign_zeros = tercond(p.Results.AssignZeros == -1, '-assign-zeros', '-no-assign-zeros');
 
+%% Run script
+
 script_name = tercond(strcmpi(output_type, 'csv'), 'gen_dataset_csv.py', 'gen_dataset_arff.py');
 script_path  = [p.Results.Root '/datasets/' script_name ];
 

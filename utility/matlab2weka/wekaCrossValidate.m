@@ -29,7 +29,7 @@ for n = 0:numFolds-1      % 0 for first fold ..
    
    fprintf('Training classifier ..\n'); 
    
-   classifier = trainWekaClassifier(train, classifierString);   
+   classifier = wekaTrainModel(train, classifierString);   
    
    predicted = wekaClassify(test,classifier);
 

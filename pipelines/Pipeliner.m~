@@ -20,21 +20,123 @@
 %             Save: vars (struct) with details 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-pipeline_version = [];                % Pipeline version 
-pipeline_dir = [];                    % Working directory for this version
+% Set up Pipeline 
+pd = struct();      % pipeline-data struct
 
-% Global vars
-dataset_dir = [];                     % Global dataset directory 
+pd.pipeline_root_dir = [env.root_dir '/pipelines/'];                   
 
+pd.pipeline_ver = 'test01';                                            % Specify a particular pipeline version 
+pd.pipeline_run = [pd.pipeline_ver '_' datestr(now, 'yymmdd_HH-MM')]; % String for versioning pipeline runs
+pd.pipeline_dir =  [pd.pipeline_root_dir pd.pipeline_run];                   %  Working directory for this pipeline
+
+% Generate pipeline directory layout
+if ~mkdir(pd.pipeline_dir)
+    disp('ERROR CREATING PIPELINE DIRECTORY!');
+end
+
+    
+
+
+pd.dataset_dir = [];                     % Global dataset directory 
+
+% Model Parameters
+pd.classifier_type = 'bayes.NaiveBayes';
+pd.classifier_options = '-O -D -K';
+
+% functions.LibSVM Options: 
+% See http://www.csie.ntu.edu.tw/~cjlin/libsvm/#download
+
+% bayes.NaiveBayes Options:
+%  '-K'  Use kernel density estimator rather than normal distribution for numeric attributes
+%  '-D'  Use supervised discretization to process numeric attributes
+%  '-O'  Display model in old format (good when there are many classes)
+
+% Others:
+% See http://weka.sourceforge.net/doc.dev/
+
+% Filter parameters
+pd.filter_type = 'weka.filters.unsupervised.instance.Resample';
+pd.filter_options = '-S 1998 -Z 10';
+
+% Import weka thingies, just in case
+import weka.*;
+
+% Start matlabpool
+if matlabpool('size') == 0
+    matlabpool local 4
+end
+
+% Debug print
+debug_flag = true;
+debugprint = @(x) debug_print(x, debug_flag); 
+
+% Copy this version of script to pipeline dir
+thisfile = mfilename('fullpath')
+
+% Save pipeline data struct (pd)
+pd_path = [pd.pipeline_dir '/pipeline_data.mat']
+save(pd_path, 'pd');
+
+
+%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 2. Pre-processing 
-%               Read dataset -> D
-%               Filter dataset -> D2
+%               Generate dataset -> D
+%               Load dataset
+%               Filter dataset -> E
 %
 %             Save: dataset details, filter details
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%
+% Dataset Generation
+%
+
+feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
+                'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
+%                 'datasets/HISTOGRAM_RGB', 'datasets/HARALICK_RGB'};
+
+label_path = 'datasets/class.info/labels.csv';
+
+classlabels = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
+spec_limit = 50000;
+
+output_type = 'arff';
+
+writeHeaders = false;       % Irrelevant for ARFF files
+writeLabels = false;
+
+dataset_name = 'all-classes_lab-shape-cicm';
+
+output_path = ['datasets/' dataset_name '.' output_type];
+    
+[status cmdout] = GenerateDataset( env.root_dir, 'Type', output_type, ...
+                        'Directory', feature_dirs, 'Labels', label_path, ...
+                        'Classes', classlabels, 'Output', output_path, ...
+                        'LabelsFile', writeLabels, 'HeadersFile', writeHeaders, 'Limit', spec_limit, 'AssignZeros', 0);
+%
+% Loading dataset
+%
+
+dataset_path = [env.dataset_dir 'all-classes_lab-shape-cicm.arff'];
+
+fprintf('Loading dataset: %s \n', dataset_path); 
+
+D = wekaLoadArff(dataset_path); 
+
+fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.numInstances);
+
+%
+% Filtering dataset 
+%
+
+fprintf('Applying filter to dataset.');
+
+
+E = wekaApplyFilter(D, filter_type, filter_options);
+
+fprintf('Reduced dataset: %i features, %i instances \n', E.numAttributes, E.numInstances);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 3. Training 
@@ -43,12 +145,25 @@ dataset_dir = [];                     % Global dataset directory
 %             Save: model details, model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+disp('Training classifier on reduced dataset.')
+
+model = wekaTrainModel(E, classifier_type, options);
+model.setProbabilityEstimates(true);
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 4. Evaluate classifier
 %               Cross-validation on full dataset -> D
 %               
 %             Save: cross-validation results / confusion matrix  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+disp('Testing classifier on larger dataset.');
+tic;
+[classPreds classProbs confusionMatrix] = wekaClassify(D, model);
+
+
+errorRate = sum(D.attributeToDoubleArray(D.classIndex) ~= classPreds)/D.numInstances;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 5. Image Classification 
@@ -58,3 +173,57 @@ dataset_dir = [];                     % Global dataset directory
 %              Save: classifier results, imageclassifier
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+tilesize = 256;
+images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+
+for i = [1:14 16:20]
+
+    %
+    % Get image info 
+    %
+    image_path = images{i};
+
+    ifd_paths = unpackTiff(image_path, 8, 1);       % Unpack image
+    imageinfo = imfinfo(ifd_paths{1});              % Get big layer info
+    repackTiff(image_path);                         % Repack image 
+    
+    width = imageinfo.Width; height = imageinfo.Height;
+
+    numBlocks = ceil( (width) / tilesize ) * ceil( (height) / tilesize);
+    
+    %
+    % Generate image dataset .. 
+    %
+    
+    feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
+                  'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
+
+    label_path = 'datasets/class.info/labels.csv';
+    filenames_path = 'datasets/class.info/filenames.csv';
+    sel_path = fliplr(strtok(fliplr(image_path), '/'));
+
+    [dataset_name status cmdout] = GenerateImageDataset( env.root_dir, 'Directory', feature_dirs, 'Image', sel_path, ... 
+                            'Labels', label_path, 'Filenames', filenames_path, 'AssignIDs', 0, 'AssignClasses', 1);
+    
+    dataset_path = [env.root_dir '/' dataset_name];  
+    
+    image_data = wekaLoadArff(dataset_path);
+    
+    %
+    % Classify image 
+    %
+    
+    [classPreds classProbs confusionMatrix] = wekaClassify(image_data, model);
+
+    % Reshape classPreds to image dimensions .. 
+    numXtiles = ceil(width / 256);
+    numYtiles = ceil(height / 256);
+    cls_image = reshape(classPreds, numYtiles, numXtiles);
+    
+    image_cls_data = struct('classPreds', classPreds, 'classProbs', classProbs, 'confusionMatrix', confusionMatrix, 'image', cls_image);
+    
+    data_path = [output_dir regexprep(sel_path, '.scn', '-NaiveBayes_cls-data.mat')]
+    
+    save(data_path, 'image_cls_data');
+    
+end

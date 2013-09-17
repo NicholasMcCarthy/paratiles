@@ -107,10 +107,26 @@ labels = []
 idx = 0;
 
 labels = mylabels.readlines();
+
+labels2 = [labels[i] for i in indices]
 labels = [labels[i].strip() for i in indices]
 mylabels.close();
 
 print "Num labels: ", len(labels)
+
+def f2(seq): 
+   # order preserving
+   checked = []
+   for e in seq:
+       if e not in checked:
+           checked.append(e)
+   return checked
+
+unique_values = f2(labels)
+# unique_values2 = f2(labels2)
+
+print unique_values
+# print unique_values2
 
 ################################################################
 # Extracting selected indices from each file
