@@ -7,7 +7,6 @@ classdef TileClassifier
     % Date created: 21/06/13
     % Date updated: 08/07/2013
     
-    
     % Private fields
     properties(GetAccess = private, SetAccess = private);
         ModelFilePath,           % Path to model being used

@@ -18,13 +18,45 @@ end
 
 %% Set up Pixel Classifier
 
-PC = PixelClassifier;
+PC1 = PixelClassifier; % Default NB model 
 
-PC.NucleiProcSize = 100; % Smaller than default as the .9.tifs are 20x magnification
+PC2 = PixelClassifier('models/NB-PixelClassifier-CD.mat'); % Colour Deconvolution model ..
 
-cls_image = @(I) PC.ClassifyImage(I.data)
+% PC.NucleiProcSize = 100; % Smaller than default as the .9.tifs are 20x magnification
+
+%% Run pixelclassifier on test images
+
+test_images = getFiles([env.root_dir '/test.images/'], 'Suffix', 'tif');
+
+for i = 1:length(images)
+    
+    image_path = test_images{i};
+    
+    I = imread(image_path);
+    
+    I = I(:,:, 1:3);
+    
+    I_cd = ColourDeconvolve(I);
+    
+    G = PC1.ClassifyImage(I);
+    G2 = PC1.ProcessImage(G);
+    
+    H = PC2.ClassifyImage(I_cd);
+    
+    cmap = jet(5);
+    
+    subplot(221), imshow(I);
+    subplot(222), imshow(I_cd);
+    subplot(223), imshow(G, cmap);
+    subplot(224), imshow(G2, cmap);
+    
+end
+
 
 %% RUN BLOCKPROC AND PIXEL-CLASSIFY IMAGES
+
+% Function handle for blockproc
+cls_image = @(I) PC.ClassifyImage(I.data)
 
 % profile on;
    

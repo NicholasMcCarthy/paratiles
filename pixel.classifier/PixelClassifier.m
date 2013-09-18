@@ -16,19 +16,29 @@ classdef PixelClassifier
         %%%%%%%%%%%%%%%%%
         % Constructor method %
         %%%%%%%%%%%%%%%%%
-        function this = PixelClassifier()
-            
-            filepath = 'models/NB-PixelClassifier.LAB.ind.mat';
-            
+        function this = PixelClassifier(varargin)
+                        
+            if nargin == 0 % Default model ..
+                filepath = 'models/NB-PixelClassifier-LAB.ind.mat';
+            else
+                if ~exist(varargin{1}, 'file')
+                    error('No file found at %s\nPlease specify a valid filepath.', varargin{1});
+                else
+                    filepath = varargin{1};
+                end
+            end
+                
             this.ModelFilepath = filepath;
-            
-            loaded = load(filepath);
-            this.Model = loaded.NB;
+            try 
+                loaded = load(filepath);
+                this.Model = loaded.NB;
+            catch err
+                error('There was an error loading the model from %s\n', filepath);
+            end
             
             this.ScaleOutput = 0;           % Scale output of ClassifyImage function to [0 255] values
             this.NucleiProcSize = 100;   % Set value for nuclei segmentation algorithm
-            
-            clear('loaded', 'filepath');    % Removes the loaded var 
+         
         end
         
         %%%%%%%%%%%%%%%%%%%  % Input: a colour image

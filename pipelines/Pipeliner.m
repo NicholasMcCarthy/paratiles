@@ -16,8 +16,8 @@
 %               Set pipeline vars
 %               Set pipeline data folders, etc
 %               Generate datasets 
-%               
-%             Save: vars (struct) with details 
+%                                               
+%             Save: vars (struct) with details         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Pipeline vars
