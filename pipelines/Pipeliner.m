@@ -1,3 +1,5 @@
+function out = Pipeliner(pl, ds, mdl, flt, ic)
+
 % Pipeliner
 %
 % This is basically an extended script, intended for running through 
@@ -7,11 +9,34 @@
 % directory, which contains all data relating to that run.
 % 
 % Author: Nick McCarthy <nicholas.mccarthy@gmail.com>
-% Date: 12/09/13
-% 
+% Created: 12-09-13
+% Updated: 26-09-13
+%
+% Input Parameters:
+%
+% pl struct:
+%   'base'              -	the base pipelines/ directory
+%   'ver'               -	(optional) pipeline version string
+%
+% mdl struct:
+%   'classifier_type'   -   WEKA classifier string (e.g. bayes.NaiveBayes)
+%   'classifier_options'-   WEKA classifier option string, will throw error
+%                           when training if invalid.
+%   'name'              -   (optional) Name for saving model
+%
+% ds struct:
+%   'dataset_dir'       -   Root directory of dataset folders
+%   'label_path'        -   Path to CSV containing row labels
+%   'dataset_name'      -   (optional) name for dataset generated
+%   'feature_dirs'      -   Cell array of paths to folders of feature sets
+%   'classes'           -   Dataset classes (must be present in labels file)
+%   'spec_limit'        -   (optional) Limit the number of obs. for any class [Default: no limit]
+%   'output_type'       -   Output type of dataset (arff | csv) [Default: arff]
+%   'output_path'       -   (optional) path to write dataset to
+%
+%
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 1. Setup 
 %               Set pipeline vars
 %               Set pipeline data folders, etc
@@ -20,65 +45,54 @@
 %             Save: vars (struct) with details         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Pipeline vars
-pl = struct();      % pipeline-data struct
-pl.base         =  env.root_dir;                                % Base workspace directory
-pl.root_dir     = [pl.base '/pipelines/'];                      % Base pipeline directory
-pl.ver          = 'test01';                                     % Specify a particular pipeline version 
-pl.run          = [pl.ver '_' datestr(now, 'yymmdd_HH-MM')];    % Pipeline version string
-pl.dir          = [pl.root_dir pl.run '/'];                     % Pipeline working directory
+tic
+disp('Stage 1. Setup');
+
+% Assert pl struct has a base field specified 
+assert( isfield(pl, 'root') , 'Pipeliner Error: Missing ''base'' field.');
+
+% If no 'ver' field given that use the default 'pl' 
+if ~isfield(pl, 'ver');
+    pl.ver = 'pl';
+end;
+
+% Generate rest of pl fields
+% pl.base         = [pl.root '/pipelines/'];                      % Base pipeline directory
+% pl.run          = [pl.ver '_' datestr(now, 'yymmdd_HH-MM')];    % Pipeline version string
+% pl.dir          = [pl.base pl.run '/'];                         % Pipeline working directory
 pl.data_dir     = [pl.dir 'data/'];                             % Pipeline data directory
 pl.model_dir    = [pl.dir 'models/'];                           % Pipeline model directory
-pl.pd_path      = [pl.dir 'pipeline_data.mat'];                 % Path for saving this pipeline-data struct (pl)
+pl.log          = [pl.dir 'output.log'];
 
-% Dataset vars
-ds = struct();     % model dataset struct
-ds.dataset_dir  = [env.root_dir '/datasets/'];                       % Path to global dataset dir
-ds.dataset_name = 'all-classes_lab-shape-cicm';                      % Name of dataset generated
-ds.feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features',...
-                   'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
-ds.label_path   = [ds.dataset_dir 'class.info/labels.csv'];          % Path to labels file for datasets
-ds.classlabels  = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};    % Classes in generated datasets (order is important here)
-ds.spec_limit   = 50000;                                             % Per-class limit of data points
-ds.output_type  = 'arff';                                            % Output type of datasets 
-ds.writeHeaders = false;                                             % Irrelevant for ARFF files
-ds.writeLabels  = false;                                             % Irrelevant for ARFF files
-ds.output_path  = [pl.data_dir dataset_name '.' output_type];        % Path to write the dataset
-
-
+disp('Creating pipeline directory structure.');
 % Generate pipeline directory layout
-if ~mkdir(pl.dir)
-    disp('ERROR CREATING PIPELINE BASE DIRECTORY!');
-end
+if ~mkdir(pl.dir);       error('Pipeliner Error: Could not create %s base directory.', pl.dir); end;
+if ~mkdir(pl.data_dir);  error('Pipeliner Error: Could not create %s data directory.', pl.data_dir); end;
+if ~mkdir(pl.model_dir); error('Pipeliner Error: Could not create %s model directory.', pl.model_dir); end;
 
-if ~mkdir(pl.data_dir)
-    disp('ERROR CREATING PIPELINE DATA DIRECTORY!');
-end
+% Model parameters 
+assert( isfield(mdl, 'classifier_type') , 'Pipeliner Error: Missing ''classifier_type'' field.');
+assert( isfield(mdl, 'classifier_options') , 'Pipeliner Error: Missing ''classifier_options'' field.');
 
-if ~mkdir(pl.model_dir)
-    disp('ERROR CREATING PIPELINE MODEL DIRECTORY!');
-end
+if ~isfield(mdl, 'name'); mdl.name = [pl.run]; end
+mdl.mdl_path = [pl.model_dir mdl.name '.mdl'];
 
+% Dataset parameters
+assert( isfield(ds, 'dataset_dir') ,   'Pipeliner Error: Missing ''dataset_dir'' field.');
+assert( isfield(ds, 'feature_dirs') ,  'Pipeliner Error: Missing ''feature_dirs'' field.');
+assert( isfield(ds, 'label_path') ,    'Pipeliner Error: Missing ''label_path'' field.');
+assert( isfield(ds, 'classes') ,       'Pipeliner Error: Missing ''classes'' field.');
+assert( isfield(ds, 'label_path') ,    'Pipeliner Error: Missing ''label_path'' field.');
 
+% Set default values for optional inputs / set up values if present
+if ~isfield(ds, 'dataset_name'); ds.dataset_name = ['dataset' pl.run]; end;
+if ~isfield(ds, 'output_type'); ds.output_type = 'arff'; end;
+if ~isfield(ds, 'output_path'); ds.output_path = [pl.data_dir ds.dataset_name '.' ds.output_type]; end;
+if ~isfield(ds, 'spec_limit'); ds.spec_limit = -1; end;
 
-% Model Parameters
-pl.classifier_type = 'bayes.NaiveBayes';
-pl.classifier_options = '-O -D -K';
-
-% functions.LibSVM Options: 
-% See http://www.csie.ntu.edu.tw/~cjlin/libsvm/#download
-
-% bayes.NaiveBayes Options:
-%  '-K'  Use kernel density estimator rather than normal distribution for numeric attributes
-%  '-D'  Use supervised discretization to process numeric attributes
-%  '-O'  Display model in old format (good when there are many classes)
-
-% Others:
-% See http://weka.sourceforge.net/doc.dev/
-
-% Filter parameters
-pl.filter_type = 'weka.filters.unsupervised.instance.Resample';
-pl.filter_options = '-S 1998 -Z 10';
+% Filter options
+assert( isfield(flt, 'filter_type') ,    'Pipeliner Error: Missing ''filter_type'' field.');
+assert( isfield(flt, 'filter_options') , 'Pipeliner Error: Missing ''filter_options'' field.');
 
 % Import weka thingies, just in case
 import weka.*;
@@ -92,16 +106,20 @@ end
 debug_flag = true;
 debugprint = @(x) debug_print(x, debug_flag); 
 
-% Copy this version of script to pipeline dir
-thisfile = mfilename('fullpath')
+% % Copy this version of script to pipeline dir
+% thisfile = [mfilename('fullpath') '.m'];
+% thisfilename = fliplr(strtok(fliplr(thisfile), '/'));
+% 
+% destfile = [pl.dir thisfilename '.bak'];
+% copyfile(thisfile, destfile);
 
-% Save pipeline data struct (pd)
-save(pd_path, 'pd');
+% Save pipeline info and parameters 
+pipeline_info = struct('pipeline_setup', pl, 'model_parameters', mdl, 'dataset_gen', ds);
+pipeline_info_path = [pl.dir 'pipeline_info.mat'];
 
-
-%%
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+save(pipeline_info_path, 'pipeline_info');
+toc
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 2. Pre-processing 
 %               Generate dataset -> D
 %               Load dataset
@@ -109,38 +127,27 @@ save(pd_path, 'pd');
 %
 %             Save: dataset details, filter details
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
+disp('Stage 2. Dataset generation & Pre-processing');
 
 %
 % Dataset Generation
 %
-ds.dataset_dir  = [env.root_dir '/datasets/'];                       % Path to global dataset dir
-ds.dataset_name = 'all-classes_lab-shape-cicm';                      % Name of dataset generated
-ds.feature_dirs = {'HARALICK_LAB', 'SHAPE.features', 'HISTOGRAM_LAB', 'CICM-r1.features'};
-ds.label_path   = [ds.dataset_dir 'class.info/labels.csv'];          % Path to labels file for datasets
-ds.classlabels  = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};    % Classes in generated datasets (order is important here)
-ds.spec_limit   = 50000;                                             % Per-class limit of data points
-ds.output_type  = 'arff';                                            % Output type of datasets 
-ds.writeHeaders = false;                                             % Irrelevant for ARFF files
-ds.writeLabels  = false;                                             % Irrelevant for ARFF files
-ds.output_path  = [pl.data_dir dataset_name '.' output_type];        % Path to write the dataset
+% 
+% ds.output_path  = [pl.data_dir ds.dataset_name '.' ds.output_type];        % Path to write the dataset
+% ds.ds_path = [pl.dir 'dataset_gen.mat'];                                  % Path to save this struct (ds)
 
-% Prepend 'datasets/' to all feature dirs .. 
-feature_dirs = cellfun(@(x) ['datasets/' x ], ds.feature_dirs, 'UniformOutput', false);
-    
-[status cmdout] = GenerateDataset( env.root_dir, 'Type', ds.output_type, ...
+[status cmdout] = GenerateDataset( pl.root, 'Type', ds.output_type, ...
                         'Directory', ds.feature_dirs, 'Labels', ds.label_path, ...
-                        'Classes', ds.classlabels, 'Output', ds.output_path, ...
-                        'LabelsFile', ds.writeLabels, 'HeadersFile', ds.writeHeaders, ...
+                        'Classes', ds.classes, 'Output', ds.output_path, ...
                         'Limit', ds.spec_limit, 'AssignZeros', 0);
 %
 % Loading dataset
 %
 
-dataset_path = [env.dataset_dir 'all-classes_lab-shape-cicm.arff'];
+fprintf('Loading dataset: %s \n', ds.output_path);
 
-fprintf('Loading dataset: %s \n', dataset_path); 
-
-D = wekaLoadArff(dataset_path); 
+D = wekaLoadArff(ds.output_path);
 
 fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.numInstances);
 
@@ -150,54 +157,73 @@ fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.num
 
 fprintf('Applying filter to dataset.');
 
-
-E = wekaApplyFilter(D, filter_type, filter_options);
+E = wekaApplyFilter(D, flt.filter_type, flt.filter_options);
 
 fprintf('Reduced dataset: %i features, %i instances \n', E.numAttributes, E.numInstances);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+toc
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 3. Training 
 %               Train model
 %
 %             Save: model details, model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
+disp('Stage 3. Model Training');
 
 disp('Training classifier on reduced dataset.')
 
-model = wekaTrainModel(E, classifier_type, options);
-model.setProbabilityEstimates(true);
+model = wekaTrainModel(E, mdl.classifier_type, mdl.classifier_options);
+% model.setProbabilityEstimates(true);
 
+wekaSaveModel(mdl.mdl_path, model);
+toc
+%% 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 4. Evaluate classifier
 %               Cross-validation on full dataset -> D
 %               
 %             Save: cross-validation results / confusion matrix  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
+disp('Stage 4. Model Evaluation');
 
 disp('Testing classifier on larger dataset.');
-tic;
-[classPreds classProbs confusionMatrix] = wekaClassify(D, model);
 
+tic
+[classPreds classProbs confusionMatrix] = wekaClassify(D, model);
+toc
 
 errorRate = sum(D.attributeToDoubleArray(D.classIndex) ~= classPreds)/D.numInstances;
 
+results = struct('classPreds', classPreds, 'classProbs', classProbs, 'confusionMatrix', confusionMatrix, 'errorRate', errorRate);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+results_path = [pl.dir 'results.mat'];
+
+save(results_path, 'results');
+
+sendmail('nicholas.mccarthy@gmail.com', ['Pipeline: ' pl.run], 'Appears to be done ..');
+toc
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 5. Image Classification 
 %               Create ImageClassifier object with model
-%               Classify each image in set
+%               Classify each image in set -> image-name_cls-data.mat
 %               
 %              Save: classifier results, imageclassifier
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
+disp('Stage 5. Image Classification')
 
-tilesize = 256;
-images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
+tilesize = ic.tilesize;
+images = ic.images;
 
-for i = [1:14 16:20]
+feature_dirs = ds.feature_dirs;
+label_path = ds.label_path;
+filenames_path = ds.filenames_path;
+    
+for i = 1:size(images, 1);
 
-    %
     % Get image info 
-    %
     image_path = images{i};
 
     ifd_paths = unpackTiff(image_path, 8, 1);       % Unpack image
@@ -208,39 +234,43 @@ for i = [1:14 16:20]
 
     numBlocks = ceil( (width) / tilesize ) * ceil( (height) / tilesize);
     
-    %
     % Generate image dataset .. 
-    %
-    
-    feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
-                  'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
-
-    label_path = 'datasets/class.info/labels.csv';
-    filenames_path = 'datasets/class.info/filenames.csv';
     sel_path = fliplr(strtok(fliplr(image_path), '/'));
 
-    [dataset_name status cmdout] = GenerateImageDataset( env.root_dir, 'Directory', feature_dirs, 'Image', sel_path, ... 
+    [dataset_name status cmdout] = GenerateImageDataset( pl.root, 'Directory', feature_dirs, 'Image', sel_path, ... 
                             'Labels', label_path, 'Filenames', filenames_path, 'AssignIDs', 0, 'AssignClasses', 1);
     
-    dataset_path = [env.root_dir '/' dataset_name];  
+    dataset_path = [pl.root '/' dataset_name];  
     
     image_data = wekaLoadArff(dataset_path);
     
-    %
     % Classify image 
-    %
-    
     [classPreds classProbs confusionMatrix] = wekaClassify(image_data, model);
 
+    
+    errorRate = sum(image_data.attributeToDoubleArray(image_data.classIndex) ~= classPreds)/image_data.numInstances;
+
+    accuracy = 1 - errorRate;
+    
     % Reshape classPreds to image dimensions .. 
     numXtiles = ceil(width / 256);
     numYtiles = ceil(height / 256);
     cls_image = reshape(classPreds, numYtiles, numXtiles);
     
-    image_cls_data = struct('classPreds', classPreds, 'classProbs', classProbs, 'confusionMatrix', confusionMatrix, 'image', cls_image);
+    % Save data
+    image_cls_data = struct('classPreds', classPreds, 'classProbs', classProbs, 'confusionMatrix', confusionMatrix, 'error', errorRate, 'accuracy', accuracy, 'image', cls_image);
     
-    data_path = [output_dir regexprep(sel_path, '.scn', '-NaiveBayes_cls-data.mat')]
+    image_cls_data_path = [pl.data_dir regexprep(sel_path, '.scn', '_cls-data.mat')];
     
-    save(data_path, 'image_cls_data');
+    save(image_cls_data_path, 'image_cls_data');
     
+end
+
+out = 1;
+toc
+%%
+
+
+sendmail('nicholas.mccarthy@gmail.com',' Can it be!?', 'Appears to be done ..');
+
 end

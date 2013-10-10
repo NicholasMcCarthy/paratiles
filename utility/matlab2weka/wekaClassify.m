@@ -21,16 +21,16 @@ function [predictedClass, classProbs, confusionMatrix] = wekaClassify(testData,c
 
     if(~wekaPathCheck),classProbs = []; return,end
     
-%     classProbs = zeros(testData.numInstances+1, testData.numClasses); % Pre-allocate probs
+    classProbs = zeros(testData.numInstances, testData.numClasses); % Pre-allocate probs
     
     for t=0:testData.numInstances -1  
        classProbs(t+1,:) = (classifier.distributionForInstance(testData.instance(t)))';
     end
     
-    [prob,predictedClass] = max(classProbs,[],2);
+    [~,predictedClass] = max(classProbs,[],2);
     
     predictedClass = predictedClass - 1; 
     
-    confusionMatrix = confusionmat(predictedClass, testData.attributeToDoubleArray(testData.classIndex));
+    confusionMatrix = confusionmat(predictedClass, testData.attributeToDoubleArray(testData.classIndex));  
     
 end

@@ -3,8 +3,8 @@
 %% Generate individual datasets for multiple files
 
 feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
-                'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
-%                 'datasets/HISTOGRAM_RGB', 'datasets/HARALICK_RGB'};
+                'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'} ...
+%                  'datasets/HISTOGRAM_RGB', 'datasets/HARALICK_RGB'};
 
 label_path = 'datasets/class.info/labels.csv';
 
@@ -93,3 +93,28 @@ for c_idx = 4:length(classlabels)
                                       
 %     end
 end
+
+%% Generate ARFF dataset for UNDERGRADUATE PROJECT (Padraig Cunningham,
+%% Niall - (niallgl@gmail.com)
+
+feature_dirs = {'datasets/HISTOGRAM_LAB', ...
+                'datasets/HISTOGRAM_RGB', ...
+                'datasets/HARALICK_RGB', ...
+                'datasets/HARALICK_LAB', ...
+                'datasets/SHAPE.features', ...
+                'datasets/CICM-r1.features'};
+
+label_path = 'datasets/class.info/labels.csv';
+
+classlabels = {'G3', 'G4'};
+
+spec_limit = 30000;
+output_path = 'G3-G4_900-features.arff';
+output_type = 'arff';
+
+writeHeaders = false;       % Irrelevant for ARFF files
+writeLabels = false;
+
+[status cmdout] = GenerateDataset( env.root_dir, 'Type', output_type, 'Directory', feature_dirs, 'Labels', label_path, ...
+                                      'Classes', classlabels, 'Output', output_path, ...
+                                      'LabelsFile', writeLabels, 'HeadersFile', writeHeaders, 'Limit', spec_limit);
