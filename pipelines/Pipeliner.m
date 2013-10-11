@@ -204,6 +204,7 @@ save(results_path, 'results');
 
 sendmail('nicholas.mccarthy@gmail.com', ['Pipeline: ' pl.run], 'Appears to be done ..');
 toc
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Stage 5. Image Classification 
 %               Create ImageClassifier object with model
@@ -221,7 +222,7 @@ feature_dirs = ds.feature_dirs;
 label_path = ds.label_path;
 filenames_path = ds.filenames_path;
     
-for i = 1:size(images, 1);
+for i = 15:size(images, 1);
 
     % Get image info 
     image_path = images{i};
@@ -247,7 +248,6 @@ for i = 1:size(images, 1);
     % Classify image 
     [classPreds classProbs confusionMatrix] = wekaClassify(image_data, model);
 
-    
     errorRate = sum(image_data.attributeToDoubleArray(image_data.classIndex) ~= classPreds)/image_data.numInstances;
 
     accuracy = 1 - errorRate;
