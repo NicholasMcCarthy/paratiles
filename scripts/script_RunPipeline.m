@@ -65,11 +65,11 @@ atr.feature_selection_options = 'options';
 ds = struct();     % model dataset struct
 ds.dataset_dir      = [env.root_dir '/datasets/'];                       % Path to global dataset dir
 ds.label_path       = [ds.dataset_dir 'class.info/labels.csv'];          % Path to labels file for datasets
-ds.filenames_path   = [ds.dataset_dir '/class.info/filenames.csv'];
+ds.filename_path    = [ds.dataset_dir '/class.info/filenames.csv'];
 
 ds.dataset_name = 'all-classes_lab-shape-cicm';                      % Name of dataset generated
-ds.feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features',...
-                   'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
+ds.feature_dirs = {'datasets/PP2', 'datasets/SHAPE.features',...
+                   'datasets/CICM-r1.features'};
                
 ds.classes  = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};    % Classes in generated datasets (order is important here)
 ds.spec_limit   = 50000;                                             % Per-class limit of data points

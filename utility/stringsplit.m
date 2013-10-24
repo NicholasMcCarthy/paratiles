@@ -1,4 +1,4 @@
-function cellArray = stringsplit( string, delimiter )
+function cellArray = stringsplit( string, delimiter, removeEmptyCells )
 %STRINGSPLIT Splits a string / char array into a cell array by delimiter.
 % If there is no delimiter found, returns the entire input string in a cell.
 
@@ -25,3 +25,7 @@ elseif not(isempty(string))    % Presuming it's not empty ..
     cellArray = mat2cell(string);
     
 end
+
+% if (removeEmptyCells) 
+%     cellArray(cellfun(@isempty, cellArray)) = [];
+% end

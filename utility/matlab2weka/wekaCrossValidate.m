@@ -1,4 +1,4 @@
-function averageError = wekaCrossValidate( data, classifierString, numFolds, randomSeed )
+function averageError = wekaCrossValidate( data, classifierString, classifierOptions, numFolds, ~ )
 % WEKACROSSVALIDATE Performs cross-validation on the input data using the
 % specified classifier.
 % Input:
@@ -29,7 +29,7 @@ for n = 0:numFolds-1      % 0 for first fold ..
    
    fprintf('Training classifier ..\n'); 
    
-   classifier = wekaTrainModel(train, classifierString);   
+   classifier = wekaTrainModel(train, classifierString, classifierOptions);   
    
    predicted = wekaClassify(test,classifier);
 

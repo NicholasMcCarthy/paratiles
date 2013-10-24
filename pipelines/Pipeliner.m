@@ -81,8 +81,8 @@ mdl.mdl_path = [pl.model_dir mdl.name '.mdl'];
 assert( isfield(ds, 'dataset_dir') ,   'Pipeliner Error: Missing ''dataset_dir'' field.');
 assert( isfield(ds, 'feature_dirs') ,  'Pipeliner Error: Missing ''feature_dirs'' field.');
 assert( isfield(ds, 'label_path') ,    'Pipeliner Error: Missing ''label_path'' field.');
+assert( isfield(ds, 'filename_path') ,'Pipeliner Error: Missing ''filename_path'' field.');
 assert( isfield(ds, 'classes') ,       'Pipeliner Error: Missing ''classes'' field.');
-assert( isfield(ds, 'label_path') ,    'Pipeliner Error: Missing ''label_path'' field.');
 
 % Set default values for optional inputs / set up values if present
 if ~isfield(ds, 'dataset_name'); ds.dataset_name = ['dataset' pl.run]; end;
@@ -139,6 +139,7 @@ disp('Stage 2. Dataset generation & Pre-processing');
 
 [status cmdout] = GenerateDataset( pl.root, 'Type', ds.output_type, ...
                         'Directory', ds.feature_dirs, 'Labels', ds.label_path, ...
+                        'Filenames', ds.filename_path, ...
                         'Classes', ds.classes, 'Output', ds.output_path, ...
                         'Limit', ds.spec_limit, 'AssignZeros', 0);
 %
@@ -150,6 +151,13 @@ fprintf('Loading dataset: %s \n', ds.output_path);
 D = wekaLoadArff(ds.output_path);
 
 fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.numInstances);
+
+fprintf('Removing ''filenames'' attribute..');
+
+% Get index of attribute 'filename' .. Remove it .. 
+% D = wekaApplyFilter(D, 'weka.filters.unsupervised.attribute.Remove', '-R 
+
+
 
 %
 % Filtering dataset 

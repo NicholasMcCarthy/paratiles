@@ -20,12 +20,13 @@ function [status cmdout] = GenerateDatasetCSV( varargin )
 p = inputParser;
 
 check_dir = @(x)  ~ any(cellfun( @(y) exist(y, 'dir'), x )==0);
-check_labels = @(x) ~ exist(x, 'file') == 0;
+check_file_exists = @(x) ~ exist(x, 'file') == 0;
 
 p.addRequired('Root', @(x) ~ exist(x, 'dir') == 0) ;
 p.addParamValue('Type', 'csv', @(x) strcmpi(x, 'csv') || strcmpi(x, 'arff'))
 p.addParamValue('Directory', check_dir);
-p.addParamValue('Labels', check_labels);
+p.addParamValue('Labels', check_file_exists);
+p.addParamValue('Filenames', check_file_exists);
 p.addParamValue('Classes', @iscellstr);
 p.addParamValue('Output', @ischar);
 p.addParamValue('LabelsFile', false, @islogical);
@@ -37,6 +38,7 @@ p.parse(varargin{:});
 
 feature_dirs = p.Results.Directory;
 label_path   = p.Results.Labels;
+filename_path= p.Results.Filenames;
 sel_classes  = p.Results.Classes;
 output_path  = p.Results.Output;
 output_type  = p.Results.Type;
@@ -70,8 +72,10 @@ elseif strcmpi(output_type, 'arff')
       
     cmd_sprintf_str = ['%s %s %s ' feature_dirs_str ' %s ' sel_classes_str ' %s %s %s %s %s %s %s']  ; % Construct sprintf string
 
+    
+    
     cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
-                                                    '-output', output_path, assign_zeros);
+                  '-filenames', filename_path, '-output', output_path, assign_zeros);
 
     if p.Results.Limit ~= -1
         cmd = [cmd sprintf(' %s %s', '-limit-obs', num2str(p.Results.Limit))];

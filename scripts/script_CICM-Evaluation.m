@@ -4,30 +4,56 @@ env.weka_dir = [env.root_dir '/weka/weka.jar']
 javaaddpath(env.weka_dir);
 javaaddpath([env.root_dir '/weka/libsvm.jar']);
 
-dataset_path = [env.dataset_dir 'all-classes_lab-shape-cicm.arff'];
+D1_path = [env.dataset_dir 'G3-G4_pp1.arff'];
+D2_path = [env.dataset_dir 'G3-G4_pp2.arff'];
+D3_path = [env.dataset_dir 'G3-G4_pp3.arff'];
 
+dataset_paths = {D1_path, D2_path, D3_path};
 
 import weka.classifiers.Evaluation;
 
-%% LOAD DATASET
+%% Iterate through dataset s ..
 
-tic
-D = wekaLoadArff(dataset_path);
+for i = 1:3
 
-D.setClassIndex(D.numAttributes-1);
-toc
+    % Load dataset
+    dataset_path = dataset_paths{i};
+    fprintf('Loading: %s\n',dataset_path)
+    
+    D = wekaLoadArff(dataset_path);
 
+    D.setClassIndex(D.numAttributes-1);
 
+    % Filter dataset (subsample)
+%     filter_type = 'weka.filters.unsupervised.instance.Resample';
+%     filter_options = '-S 1998 -Z 20';
+%     disp('Filtering dataset')
+%     E = wekaApplyFilter(D, filter_type, filter_options);
+% 
+%     % Train model
+    classifier_type = 'bayes.NaiveBayes';
+    classifier_options = '-O -D';
+%     disp('Training model.');
+%     model = wekaTrainModel(E, classifier_type, classifier_options); 
+% 
+%     % Evaluate model
+%     disp('Evaluating model.');
+%     [predictedClass, classProbs, confusionMatrix] = wekaClassify(D,model);
+% 
+%     errorRate = sum(D.attributeToDoubleArray(D.classIndex) ~= predictedClass)/D.numInstances;
+% 
+%     fprintf('Error rate: %f \n', errorRate);
+%     confusionMatrix
 
-%% TRAIN CLASSIFIER
+    disp('Cross-validating model.');
+    
+    wekaCrossValidate(D, classifier_type, classifier_options, 5);
 
-classifier_type = 'functions.LibSVM';
-option_string = {'-b 1'}; % Returns class probabilities
+end
 
-model = trainWekaClassifier(D, 'functions.LibSVM', option_string);
+%%
 
-% model = javaObject(classifier_type);
-% model.buildClassifier(D);
+% Information gain 
 
 
 %% Splitting dataset into test and training sets
@@ -37,6 +63,7 @@ D2 = D; % Copy the dataset
 rand = java.util.Random(1988);
 
 numFolds = 10;
+
 
 
 

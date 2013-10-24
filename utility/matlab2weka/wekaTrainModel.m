@@ -48,7 +48,7 @@ function wekaClassifier = wekaTrainModel(wekaData,type,options)
     if(nargin == 3 && ~isempty(options))
         
         if ischar(options)  % If options is a string, e.g. '-Z 100 -C 10 -G 1' 
-            options = stringsplit(options, ' ') % Split it by spaces into cellstring array
+            options = stringsplit(options, ' '); % Split it by spaces into cellstring array
         end
         
         wekaClassifier.setOptions(options);

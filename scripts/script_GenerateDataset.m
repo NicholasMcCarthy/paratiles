@@ -2,13 +2,17 @@
 
 %% Generate individual datasets for multiple files
 
-feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
-                'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'} ...
+% feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
+%                 'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'} ...
 %                  'datasets/HISTOGRAM_RGB', 'datasets/HARALICK_RGB'};
 
-label_path = 'datasets/class.info/labels.csv';
+feature_dirs = {'datasets/PP2', 'datasets/SHAPE.features'} %, 'datasets/CICM-r1.features'} %, 'datasets/SHAPE.features'};
 
-classlabels = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
+label_path = 'datasets/class.info/labels.csv';
+filename_path = 'datasets/class.info/labels.csv';
+
+% classlabels = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
+classlabels = {'G3', 'G4'};
 spec_limit = 50000;
 
 output_type = 'arff';
@@ -16,13 +20,13 @@ output_type = 'arff';
 writeHeaders = false;       % Irrelevant for ARFF files
 writeLabels = false;
 
-dataset_name = 'all-classes_lab-shape-cicm';
+dataset_name = 'G3-G4_pq4';
 
 output_path = ['datasets/' dataset_name '.' output_type];
     
 [status cmdout] = GenerateDataset( env.root_dir, 'Type', output_type, ...
-                        'Directory', feature_dirs, 'Labels', label_path, ...
-                        'Classes', classlabels, 'Output', output_path, ...
+                        'Directory', feature_dirs, 'Labels', label_path, 'Classes', classlabels, ...
+                        'Output', output_path, 'Filenames', filename_path, ...
                         'LabelsFile', writeLabels, 'HeadersFile', writeHeaders, 'Limit', spec_limit, 'AssignZeros', 0);
 
 %% Generate ARFF dataset for NONCANCER TILES
