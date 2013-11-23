@@ -17,6 +17,8 @@ function G = ColourDeconvolve( varargin )
 
 % H&E Preset value
 OD_Preset = [0.18 0.20 0.08 ; 0.01 0.13 0.01 ; 0.10 0.21 0.29];
+% OD_Preset = [0.18 0.20 0.08 ; 0.01 0.13 0.01 ; 0 0 0]; <- Just for H&E
+% stain values!
 
 %% Parse inputs
 p = inputParser;

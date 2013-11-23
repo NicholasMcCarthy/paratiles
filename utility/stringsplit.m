@@ -22,7 +22,7 @@ if not(isempty(idx))
 % If no delimiters found, then return the entire string in a cell    
 elseif not(isempty(string))    % Presuming it's not empty .. 
     
-    cellArray = mat2cell(string);
+    cellArray = {string};
     
 end
 

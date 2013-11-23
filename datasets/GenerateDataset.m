@@ -26,7 +26,7 @@ p.addRequired('Root', @(x) ~ exist(x, 'dir') == 0) ;
 p.addParamValue('Type', 'csv', @(x) strcmpi(x, 'csv') || strcmpi(x, 'arff'))
 p.addParamValue('Directory', check_dir);
 p.addParamValue('Labels', check_file_exists);
-p.addParamValue('Filenames', check_file_exists);
+p.addParamValue('Filenames', '', check_file_exists);
 p.addParamValue('Classes', @iscellstr);
 p.addParamValue('Output', @ischar);
 p.addParamValue('LabelsFile', false, @islogical);
@@ -73,9 +73,13 @@ elseif strcmpi(output_type, 'arff')
     cmd_sprintf_str = ['%s %s %s ' feature_dirs_str ' %s ' sel_classes_str ' %s %s %s %s %s %s %s']  ; % Construct sprintf string
 
     
-    
-    cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
-                  '-filenames', filename_path, '-output', output_path, assign_zeros);
+    if (isempty(filename_path))
+        cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
+                      '-output', output_path, assign_zeros);
+    else 
+        cmd = sprintf(cmd_sprintf_str, 'python', script_path, '-dir', feature_dirs{:}, '-class', sel_classes{:}, '-labels', label_path, ...
+                      '-filenames', filename_path, '-output', output_path, assign_zeros);
+    end
 
     if p.Results.Limit ~= -1
         cmd = [cmd sprintf(' %s %s', '-limit-obs', num2str(p.Results.Limit))];

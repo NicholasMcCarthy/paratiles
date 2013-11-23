@@ -21,8 +21,6 @@ loaded = load('pixel.classifier/data/pixeldata-5.pp1.mat');
 data = loaded.data;
 clear('loaded');
 
-
-
 % Sample data (i.e. balance classes .. )
 N = 10000;
 
@@ -66,6 +64,8 @@ diff = X - (new_xdim^2); % Can't reshape it with extra pixels ..
 img_pixeldata = pixeldata(1:end-diff, :, :);
 img_pixeldata = reshape(img_pixeldata, new_xdim, new_xdim, Z);
 img_cd_pixeldata = ColourDeconvolve(img_pixeldata);
+
+
 figure;
 subplot(121), imshow(img_pixeldata);
 subplot(122), imshow(img_cd_pixeldata);
@@ -118,8 +118,6 @@ disp('Colour deconvolved cluster distances ');
 disp(cluster_dists);
 disp('RGB cluster distances ');
 disp(cluster_dists2);
-
-
 
 %% Train (NaiveBayes) classifier .. 
 
@@ -293,6 +291,101 @@ for i = 1:size(tileset, 1);
 end;
 
 
+%% Data Preparation for LAB+HE NaiveBayes model of pixel classification
+
+% This .mat file has the cleaned up pixel values selected for each class 
+loaded = load('pixel.classifier/data/pixeldata-5.pp1.mat'); 
+data = loaded.data; clear('loaded');
+
+% Sample data (i.e. balance classes .. )
+N = 10000;
+
+labels = data.labels;
+U = unique(labels);
+
+idx_samples = [];
+
+% Sample with replacement from each class
+for i = 1:length(U)
+    idx_samples = [idx_samples ; randsample(find(labels==U(i)), N, true)];
+end
+
+sampled_labels = labels(idx_samples);
+
+% Select data .. 
+pixeldata = data.RGBMS(idx_samples,:); % The RGB mean-shifted pixel values
+
+ % Assumes pixeldata is X rows with 3 columns for each channel (i.e. in
+ % feature vector format). This reshapes it to an image format that is a
+ % long single line.
+pixeldata = reshape(pixeldata, size(pixeldata, 1), 1, size(pixeldata, 2));
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Convert RGB values to CIELAB
+lab_pixeldata = rgb2cielab(pixeldata);
+
+% Squeeze to feature vector 
+lab_pixeldata = squeeze(lab_pixeldata);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Perform colour deconvolution on pixeldata
+OD_HE = [0.18 0.20 0.08 ; 0.01 0.13 0.01 ; 0 0 0];
+
+he_pixeldata = ColourDeconvolve(pixeldata, OD_HE);
+he_pixeldata = he_pixeldata(:,:,1:2); % Drop the empty channel (non H&E)
+
+% Squeeze colour-deconvolved pixel data back to feature vector form
+he_pixeldata = squeeze(he_pixeldata);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Join LAB and HE values horizontally
+
+helab_pixeldata = [he_pixeldata lab_pixeldata];
+
+% Cast uint8 to double (needed for NaiveBayes model)
+helab_pixeldata = double(helab_pixeldata);
+
+lab_pixeldata = double(lab_pixeldata);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Train model 
+
+class_labels = sampled_labels; % to be clear .. 
+
+helab_pixeldata(1,1) = 254; % Otherwise, no within-class variance for class 1, feature 1 ...
+
+NB = NaiveBayes.fit(helab_pixeldata, class_labels);
+
+NB2= NaiveBayes.fit(lab_pixeldata, class_labels);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Look at confusion matrices and accuracy for each .. 
+
+cpred = NB.predict(helab_pixeldata);
+
+confusion_matrix = confusionmat(cpred, sampled_labels);
+err_rate = sum(sampled_labels~=cpred)/(length(cpred));    %mis-classification rate
+acc_rate  = sum(sampled_labels==cpred)/(length(cpred));   %mis-classification rate
+
+fprintf('Accuracy rate: %0.2f\nConfusion Matrix:\n', acc_rate*100);
+
+disp(confusion_matrix);
+
+cpred2 = NB2.predict(lab_pixeldata);
+confusion_matrix2 = confusionmat(cpred2, sampled_labels);
+err_rate2 = sum(sampled_labels~=cpred2)/(length(cpred2)); %mis-classification rate
+acc_rate2= sum(sampled_labels==cpred2)/(length(cpred2)); %mis-classification rate
+fprintf('Accuracy rate: %0.2f\nConfusion Matrix:\n', acc_rate2*100);
+
+disp(confusion_matrix2);
+
+% Save model .. 
+
+modelname = 'NB-PixelClassifier-HELAB.mat';
+
+save(['pixel.classifier/models/' modelname], 'NB');
 
 
 

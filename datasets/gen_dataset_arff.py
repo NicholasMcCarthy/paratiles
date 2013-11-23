@@ -130,7 +130,9 @@ if mylimit is not None:
 
 	labels    = [labels[i]    for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
 	indices   = [indices[i]   for i in sorted(sampled_idx)]
-	filenames = [filenames[i] for i in sorted(sampled_idx)]
+	
+	if myfilenames is not None:
+		filenames = [filenames[i] for i in sorted(sampled_idx)]
 
 ################################################################
 # Extracting selected indices from each file
@@ -191,9 +193,34 @@ out.write(relation_str)
 for header in headers:		
 	out.write('@ATTRIBUTE ' + header + ' NUMERIC\n')
 
+# uniqify a list
+def f2(seq): 
+   # order preserving
+   checked = []
+   for e in seq:
+       if e not in checked:
+           checked.append(e)
+   return checked
+
 if myfilenames is not None:
+
+	unique_filenames = f2(filenames)
+
 	print "Adding filenames header info";
-	filenames_str = '@ATTRIBUTE filename STRING\n'
+
+	filenames_str = '@ATTRIBUTE filename STRING \n'
+
+	print "Unique filenames: "
+	print unique_filenames
+
+	# filenames_str = '@ATTRIBUTE filename NOMINAL {'
+
+	# for uf in unique_filenames:
+	# 	filenames_str += uf + ','
+
+	# filenames_str = filenames_str[:-1] # strip final trailing comma 
+	# filenames_str += '}\n'
+
 	out.write(filenames_str)
 
 class_str = '@ATTRIBUTE label {'
