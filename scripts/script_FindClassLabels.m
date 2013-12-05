@@ -50,6 +50,14 @@ for i = 1:20
     % convert class num values to labels  
 end
 
+%%
+
+labeldata = struct('labels', idx_labels, 'filenames', idx_filenames);
+
+save('labeldata.mat', 'labeldata');
+
+
+%% 
 % Converting uint8 values to string labels
 interval = (255/8);
 
@@ -66,24 +74,26 @@ idx_labelsr = regexprep(idx_labelsr, '198', 'TIS');
 idx_labelsr = regexprep(idx_labelsr, '255', 'NON');
 idx_labelsr = regexprep(idx_labelsr, '0', 'G3');
 
+
 idx_labelsr = cellfun(@strtrim, idx_labelsr, 'UniformOutput', false);
 
 %% Writing to .csv
 
 % Create files
-output_dir = [env.dataset_dir 'tile_info/'];
+output_dir = [env.dataset_dir 'class.info/'];
 file_filename = [output_dir 'filenames.csv'];
-file_labels = [output_dir 'labels.csv'];
+file_labels = [output_dir 'labels2.csv'];
 
 f1 = fopen(file_filename, 'a');
-f2 = fopen(file_labels, 'a');
-
 for i = 1:length(idx_labelsr)  % for each row
     
     fprintf(f1, '%s\n', idx_filenames{i});
-    fprintf(f2, '%s\n', idx_labelsr{i});
     
 end
-
 fclose(f1);
+
+f2 = fopen(file_labels, 'a');
+for i = 1:length(idx_labelsr)  % for each row
+    fprintf(f2, '%s\n', idx_labelsr{i});
+end
 fclose(f2);

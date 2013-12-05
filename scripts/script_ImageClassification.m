@@ -97,7 +97,7 @@ model_name = [classifier_type '-' regexprep(fliplr(strtok(fliplr(dataset_path), 
 
 model_path = [model_dir model_name];
 
-% wekaSaveModel(model_path, model);
+wekaSaveModel(model_path, model);
 
 %% Cross-validate model on full dataset
 
@@ -132,7 +132,7 @@ end
 
 images = getFiles(env.training_image_dir, 'Wildcard', '.scn');
 
-for i = 15:length(images)
+for i = 17:length(images)
 
     disp(i);
     image_path = images{i};
@@ -150,8 +150,8 @@ for i = 15:length(images)
     numBlocks = ceil( (width) / tilesize ) * ceil( (height) / tilesize)
     
     % Generate image dataset .. 
-    feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
-                    'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
+    feature_dirs = {'datasets/HARALICK_LAB'} %, 'datasets/SHAPE.features', ...
+%                     'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'};
 
     label_path = 'datasets/class.info/labels.csv';
     filenames_path = 'datasets/class.info/filenames.csv';

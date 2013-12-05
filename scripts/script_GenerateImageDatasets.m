@@ -14,7 +14,7 @@ feature_dirs = {'datasets/HARALICK_LAB', 'datasets/SHAPE.features', ...
             
 label_path = 'datasets/class.info/labels.csv';
 filenames_path = 'datasets/class.info/filenames.csv';
-image_path = fliplr(strtok(fliplr(images{1}), '/'));
+image_path = fliplr(strtok(fliplr(images{15}), '/'));
 
 [dataset_path status cmdout] = GenerateImageDataset( env.root_dir, 'Directory', feature_dirs, 'Image', image_path, ... 
                         'Labels', label_path, 'Filenames', filenames_path, 'AssignIDs', 0, 'AssignClasses', 1);

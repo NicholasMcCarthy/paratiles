@@ -17,7 +17,6 @@ for i = 1:100
     axis([0 2*pi -1 1])
     colormap(jet);
 
-
     subplot(332), plot(t, sin(x)+cos(y), 'LineWidth', 2);
     title('sin(x)+ cos(y)' );
     axis([0 2*pi -2 2])

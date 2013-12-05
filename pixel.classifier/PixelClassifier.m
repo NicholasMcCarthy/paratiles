@@ -16,19 +16,29 @@ classdef PixelClassifier
         %%%%%%%%%%%%%%%%%
         % Constructor method %
         %%%%%%%%%%%%%%%%%
-        function this = PixelClassifier()
-            
-            filepath = 'models/NB-PixelClassifier.LAB.ind.mat';
-            
+        function this = PixelClassifier(varargin)
+                        
+            if nargin == 0 % Default model ..
+                filepath = 'models/NB-PixelClassifier-LAB.ind.mat';
+            else
+                if ~exist(varargin{1}, 'file')
+                    error('No file found at %s\nPlease specify a valid filepath.', varargin{1});
+                else
+                    filepath = varargin{1};
+                end
+            end
+                
             this.ModelFilepath = filepath;
-            
-            loaded = load(filepath);
-            this.Model = loaded.NB;
+            try 
+                loaded = load(filepath);
+                this.Model = loaded.NB;
+            catch err
+                error('There was an error loading the model from %s\n', filepath);
+            end
             
             this.ScaleOutput = 0;           % Scale output of ClassifyImage function to [0 255] values
             this.NucleiProcSize = 100;   % Set value for nuclei segmentation algorithm
-            
-            clear('loaded', 'filepath');    % Removes the loaded var 
+         
         end
         
         %%%%%%%%%%%%%%%%%%%  % Input: a colour image
@@ -91,15 +101,26 @@ classdef PixelClassifier
            
             CI = this.ClassifyImage(I);
             PI = this.ProcessImage(CI);
-            
+             
             fv_CI = this.GetCICMFeatures(CI);
-           
             fv_PI = this.GetCICMFeatures(PI);
-            
             fv_shape = this.GetShapeFeatures(PI);
             
             FV = [fv_CI fv_PI fv_shape];
+        end
+        
+        %%%%%%%%%%%%%%%%%%%%%%% % Input: an RGB image
+        % Obtain All Features % % Output: Feature vector of all features
+        %%%%%%%%%%%%%%%%%%%%%%%
+        function FV = GetAllFeaturesv2(this, I)
+           
+            CI = this.ClassifyImage(I);
             
+            fv_CI2 = this.GetCICMFeaturesv2(CI);
+            fv_CI3 = this.GetCICMFeaturesv3(CI);
+            fv_CI4 = this.GetCICMFeaturesv4(CI);
+            
+            FV = [fv_CI2 fv_CI3 fv_CI4];
         end
         
         %%%%%%%%%%%%%%%%%%%%%%% % Input: none
@@ -113,9 +134,24 @@ classdef PixelClassifier
             PI_labels = cellfun(@(x) strcat('P_', x), CI_labels, 'UniformOutput', false);
            
             shape_labels = this.GetShapeFeatureLabels();
-            
+                        
             FV_labels = [CI_labels PI_labels shape_labels];
                         
+        end   
+        
+        %%%%%%%%%%%%%%%%%%%%%%% % Input: none
+        % Obtain All Features % % Output: Cell array of feature labels 
+        %%%%%%%%%%%%%%%%%%%%%%% %          taken from GetAllFeatures()
+        
+        function FV_labels = GetAllFeatureLabelsv2(this);
+            
+            CI_labels1 = this.GetCICMFeatureLabels();
+            CI_labels2 = this.GetCICMFeatureLabelsv2();
+            CI_labelsv2 = cellfun(@(x) strcat('v2_', x), CI_labels1, 'UniformOutput', false);
+            CI_labelsv3 = cellfun(@(x) strcat('v3_', x), CI_labels2, 'UniformOutput', false);
+            CI_labelsv4 = cellfun(@(x) strcat('v4_', x), CI_labels2, 'UniformOutput', false);
+                                   
+            FV_labels = [CI_labelsv2 CI_labelsv3 CI_labelsv4];
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image
@@ -162,6 +198,107 @@ classdef PixelClassifier
                 end
             end
             
+        end
+        
+        
+         %%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image
+        % Obtain CICM Features % % Output: Novel CICM features 
+        %%%%%%%%%%%%%%%%%%%%%%%% %       
+        function [FV HIST GLCM] = GetCICMFeaturesv2(this, CI)
+            
+            % Get histogram
+            HIST = zeros(1, 5);
+            for h = 1:5
+                HIST(h) = sum(sum(CI(:) == (h)));
+            end
+            
+            offsets =  [ 0 1 ; -1 1 ; -1 0 ; -1 -1 ];      % Offsets for 0, 45, 90, 135 degree angles
+            graylimits = [1 5];                              % Graylimits and numlevels set so binning doesn't 
+            numlevels = 5;                                  % change assigned pixel classes.
+            
+            glcm = graycomatrix(CI, 'Offset', offsets, 'NumLevels', numlevels, 'GrayLimits', graylimits, 'Symmetric', true); 
+            
+            GLCM = (glcm(:,:,1) + glcm(:,:,2) + glcm(:,:,3) + glcm(:,:,4));
+                        
+            
+            FV = zeros(1, 25); % Preallocate feature vector
+            
+            i = 1;
+            for h = 1:5     % For each class value
+
+                for g = 1:5  % For each class value
+                    
+                    if HIST(h) == 0
+                        FV(i) = 0;
+                    else
+                        FV(i) = GLCM(h, g) / HIST(h) ; % + 1 to account for divide-by-zero error
+                    end
+                    
+%                     fprintf('Index %i (%i,%i) = %i / %i = %0.5f \n', i, h, g, HIST(h), GLCM(h, g), FV(i));
+                    
+                    i = i +1;
+                end
+                
+            end
+            
+        end
+        
+         function [FV HIST GLCM] = GetCICMFeaturesv3(this, CI)
+            
+            offsets =  [ 0 1 ; -1 1 ; -1 0 ; -1 -1 ];      % Offsets for 0, 45, 90, 135 degree angles
+            graylimits = [1 5];                              % Graylimits and numlevels set so binning doesn't 
+            numlevels = 5;                                  % change assigned pixel classes.
+            
+            glcm = graycomatrix(CI, 'Offset', offsets, 'NumLevels', numlevels, 'GrayLimits', graylimits, 'Symmetric', true); 
+            
+            GLCM = (glcm(:,:,1) + glcm(:,:,2) + glcm(:,:,3) + glcm(:,:,4));
+            
+            % Normalize by division over total sum
+            GLCM = GLCM ./ sum(sum(GLCM));
+            
+            FV = zeros(1, 15); % Preallocate feature vector
+            
+            % Assign upper right matrix values to FV (since they're
+            % symmetrical!) 
+            i = 1;
+            
+            for x = 1:5
+                for y = x:5
+%                     fprintf('(%i, %i) \n', x, y);
+                    FV(i) = GLCM(x,y);
+                    i = i+1;
+                end
+            end       
+         end
+        
+        function [FV HIST GLCM] = GetCICMFeaturesv4(this, CI)
+            
+            offsets =  [ 0 1 ; -1 1 ; -1 0 ; -1 -1 ];      % Offsets for 0, 45, 90, 135 degree angles
+            graylimits = [1 5];                              % Graylimits and numlevels set so binning doesn't 
+            numlevels = 5;                                  % change assigned pixel classes.
+            
+            glcm = graycomatrix(CI, 'Offset', offsets, 'NumLevels', numlevels, 'GrayLimits', graylimits, 'Symmetric', true); 
+            
+            GLCM = (glcm(:,:,1) + glcm(:,:,2) + glcm(:,:,3) + glcm(:,:,4));
+            
+            % Normalize to unit range
+            GLCM_max = max(max(GLCM));
+            GLCM_min = min(min(GLCM));
+            GLCM(:) = (GLCM - GLCM_min) ./ (GLCM_max - GLCM_min);
+            
+            FV = zeros(1, 15); % Preallocate feature vector
+            
+            % Assign upper right matrix values to FV (since they're
+            % symmetrical!) 
+            i = 1;
+            for x = 1:5
+                for y = x:5
+%                     fprintf('(%i, %i) \n', x, y);
+                    FV(i) = GLCM(x,y);
+                    i = i+1;
+                end
+            end
+               
         end
         
         %%%%%%%%%%%%%%%%%%%%%%%%% % Input: Class index image
@@ -376,6 +513,24 @@ classdef PixelClassifier
             
         end 
         
+              
+        %%%%%%%%%%%%%%%%%% % Returns cell array of labels for CICM features
+        % Feature Labels % 
+        %%%%%%%%%%%%%%%%%%
+        function FV_labels = GetCICMFeatureLabelsv2(this)
+            
+            % THERE ARE ONLY 15 VALUES IN THIS FEATURE VECTOR!!!! 
+            FV_labels = cell(1,15); % Pre-allocate cell array
+            i = 1;
+            for h = 1:5
+                for g = h:5
+                    FV_labels{i} = strcat(this.Key{h}, '_', this.Key{g});
+                    i = i + 1;
+                end
+            end
+            
+        end 
+        
         %%%%%%%%%%%%%%%%%% % Returns cell array of labels for traditional features
         % Feature Labels % 
         %%%%%%%%%%%%%%%%%% % hard-coded (dur)
@@ -403,7 +558,7 @@ classdef PixelClassifier
         end
         % Reshapes feature vector back to colour image.
         function T = FeatureVectorToTile(FV, X, Y);
-            [~, Z] = size(FV);
+            [~, Z] = size(FV);Ge
             T = reshape(FV, X, Y, Z);
         end
         

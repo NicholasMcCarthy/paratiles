@@ -18,8 +18,9 @@ p.add_argument('-output', required = True, type=argparse.FileType('wb', 0), help
 p.add_argument('-limit-obs', nargs=1, required=False, help="Limit the number of obs. per class")
 p.add_argument('-assign-zeros', dest='assign-zeros', action='store_true', help='Remove zero element vectors.')
 p.add_argument('-no-assign-zeros', dest='assign-zeros', action='store_false', help='Remove zero element vectors.')
+p.add_argument('-filenames', required=False, type=argparse.FileType('r'), help='Column of image filenames')
 
-# args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HARALICK.features -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -output test.csv -limit-obs 5000 -assign-zeros NON'.split()));
+# args = vars(p.parse_args('-dir /home/nick/git/paratiles/datasets/HISTOGRAM_LAB -class G5 G3 TIS -labels /home/nick/git/paratiles/datasets/class.info/labels.csv -filenames /home/nick/git/paratiles/datasets/class.info/filenames.csv -output test.arff -limit-obs 5000 -assign-zeros'.split()));
 
 args = vars(p.parse_args())
 
@@ -55,7 +56,7 @@ mylabels  = args['labels']
 myoutput  = args['output']
 mylimit   = args['limit_obs']
 myassnzeros = args['assign-zeros']
-
+myfilenames = args['filenames']
 
 ################################################################
 # List all the CSV files in the specified directory
@@ -94,6 +95,19 @@ mylabels.close()
 
 print "Number of obs read:", len(labels)
 
+# And do the same for filenames (if set)
+
+filenames = [];
+
+if myfilenames is not None:
+
+	print "Filenames specified, adding to columns."
+
+	for line in myfilenames:
+		filenames.append(line.strip())
+
+	filenames = [filenames[i] for i in indices]
+
 
 # Set maximum number of obs of ANY class, rather than class specifics .. 
 if mylimit is not None:
@@ -114,8 +128,11 @@ if mylimit is not None:
 		sampled_idx = sampled_idx + class_idx							# Append the selected class_idx (sampled or otherwise) to the sampled_idx list
 
 
-	labels = [labels[i] for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
-	indices = [indices[i] for i in sorted(sampled_idx)]
+	labels    = [labels[i]    for i in sorted(sampled_idx)]					# Technically the sorted is not needed here, but why not keep it neat .. 
+	indices   = [indices[i]   for i in sorted(sampled_idx)]
+	
+	if myfilenames is not None:
+		filenames = [filenames[i] for i in sorted(sampled_idx)]
 
 ################################################################
 # Extracting selected indices from each file
@@ -135,6 +152,10 @@ for csvfile in csvfiles:                                           # for each fi
 		olines.append(lines[idx].strip())                            # append the selected indices to olines list and remember to remove the newline char
 		  
 	data.append(olines)                                             # then append all of the selected lines to the data list
+
+if myfilenames is not None:
+	print "Appending filenames to data matrix."
+	data.append(filenames)
 
 data.append(labels)													# ARFF files will always have the label written to same file, in this case the final column ..
 
@@ -171,6 +192,36 @@ out.write(relation_str)
 
 for header in headers:		
 	out.write('@ATTRIBUTE ' + header + ' NUMERIC\n')
+
+# uniqify a list
+def f2(seq): 
+   # order preserving
+   checked = []
+   for e in seq:
+       if e not in checked:
+           checked.append(e)
+   return checked
+
+if myfilenames is not None:
+
+	unique_filenames = f2(filenames)
+
+	print "Adding filenames header info";
+
+	filenames_str = '@ATTRIBUTE filename STRING \n'
+
+	print "Unique filenames: "
+	print unique_filenames
+
+	# filenames_str = '@ATTRIBUTE filename NOMINAL {'
+
+	# for uf in unique_filenames:
+	# 	filenames_str += uf + ','
+
+	# filenames_str = filenames_str[:-1] # strip final trailing comma 
+	# filenames_str += '}\n'
+
+	out.write(filenames_str)
 
 class_str = '@ATTRIBUTE label {'
 for c in myclasses:

@@ -40,7 +40,6 @@ numFolds = 10;
 
 
 
-
 %% Evaluation 
 
 evaluator = weka.classifiers.Evaluation(D2);
