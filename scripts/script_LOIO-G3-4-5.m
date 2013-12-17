@@ -1,26 +1,15 @@
-% This script performs LOI (Leave-one-image-out) cross-validation on a
-% dataset
-
+% Script for obtaining results of CANCER versus NONCANCER tissue for ICPR
+% 2013 Submission
 
 %% SETUP 
 
-% Import weka thingies, just in case
 import weka.*;
 
-% Start matlabpool
-if matlabpool('size') == 0
-    matlabpool local 4
-end
+if (matlabpool('size') == 0)  matlabpool local 4; end;
 
-%% Loading a dataset 
+%% LOAD DATASET
 
-% datasets = 'CANCER_NONCANCER_main.arff'
-
-dataset_path = [env.dataset_dir 'ALL_all-features.arff'];
-% dataset_path = [env.dataset_dir 'G3-4_all-features.arff'];
-% dataset_path = [env.dataset_dir 'TIS-G3-4-5_all-BALANCED.arff'];
-
-
+dataset_path = [env.dataset_dir 'ICPR_features.arff'];
 fprintf('Loading dataset: %s \n', dataset_path);
 
 % Full dataset
@@ -29,12 +18,10 @@ D = wekaLoadArff(dataset_path);
 fprintf('Dataset: %s  \t %i features, %i instances \n', dataset_path, D.numAttributes, D.numInstances);
 fprintf(['Class attribute: ' char(D.classAttribute.toString) '\n']);
 
-
-%% Create new class attribute 
+%% CONVERT CLASS ATTRIBUTES
 % Convert {G3, G34, G4, G45, G5} to {CAN} 
 
-import weka.core.Attribute;
-import weka.core.FastVector;
+import weka.core.Attribute; import weka.core.FastVector;
 
 % Create the new attribute 
 attrLabel = java.lang.String('newlabel');

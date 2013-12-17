@@ -153,7 +153,7 @@ disp('Done!');
 
 %% OUTPUT 
 
-output_dir = [env.root_dir '/datasets/CICM-VARIANT/']
+output_dir = [env.root_dir '/datasets/GLCMVector_LAB_D1_NL64/']
 
 % Generate single column csvs with column names as filenames
 for h = 1:length(FE.Features)

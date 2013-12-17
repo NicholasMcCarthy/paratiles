@@ -14,12 +14,7 @@ end
 
 %% Loading a dataset 
 
-% datasets = 'CANCER_NONCANCER_main.arff'
-
-dataset_path = [env.dataset_dir 'ALL_all-features.arff'];
-% dataset_path = [env.dataset_dir 'G3-4_all-features.arff'];
-% dataset_path = [env.dataset_dir 'TIS-G3-4-5_all-BALANCED.arff'];
-
+dataset_path = [env.dataset_dir 'ICPR_features.arff'];
 
 fprintf('Loading dataset: %s \n', dataset_path);
 
@@ -30,124 +25,109 @@ fprintf('Dataset: %s  \t %i features, %i instances \n', dataset_path, D.numAttri
 fprintf(['Class attribute: ' char(D.classAttribute.toString) '\n']);
 
 
-%% Create new class attribute 
-% Convert {G3, G34, G4, G45, G5} to {CAN} 
+%% SUBSET DATASET TO TRAIN {G4, G5} and TEST {G4/5}
 
-import weka.core.Attribute;
-import weka.core.FastVector;
+% Split dataset into TEST and TRAINING sets 
 
-% Create the new attribute 
-attrLabel = java.lang.String('newlabel');
-attrValues = FastVector;
-attrValues.addElement('TIS');
-attrValues.addElement('CAN');
-newAttribute = Attribute('nlabel', attrValues);
+TRAIN = wekaCopyDataset(D, 0); % Create new dataset with same attributes
+TEST = wekaCopyDataset(D, 0);   
 
-% Insert attribute at end of dataset 
-D.insertAttributeAt(newAttribute, D.numAttributes)
+classAttribute = D.classAttribute;
+classVector = D.attributeToDoubleArray(D.classIndex);
 
-% Indices of old and new class values
-oldClassIndex = D.classIndex;
-newClassIndex = D.classIndex+1;
+trainValues = [];
 
-% Get old class values (as factor indices)
-oldValues = D.attributeToDoubleArray(oldClassIndex);
-
-% Map renamed values to new factor index 
-oldValues(oldValues>=1) = 1;
-
-for i = 0:D.numInstances-1
-    D.instance(i).setValue(newClassIndex, oldValues(i+1));
+for i = 0:length(classVector)-1
+    
+    if (classVector(i+1) == 3 || classVector(i+1) == 5)  % Add G4, G5 to TRAIN
+        TRAIN.add(D.instance(i));
+        trainValues = [trainValues classVector(i+1)];
+    elseif (classVector(i+1) == 4)                     % Add G45 to TEST
+        TEST.add(D.instance(i));
+    end 
 end
 
-% Swap class index values
-D.setClass(D.attribute(newClassIndex));
-% And delete old class attribute!
-D.deleteAttributeAt(oldClassIndex);
+trainValues(trainValues ==3) = 0;  % Map old values to new indices
+trainValues(trainValues ==5) = 1;
 
-fprintf(['Converted Class attribute: ' char(D.classAttribute.toString) '\n']);
+% Create new attribute
+newAttribute = wekaCreateAttribute('nlabel', 'nominal', {'G4', 'G5'});
 
-%% Subset dataset to selected classes 
+% Insert new attribute 
+TRAIN.insertAttributeAt(newAttribute, TRAIN.classIndex+1);
+TEST.insertAttributeAt(newAttribute, TEST.classIndex+1);
 
-% % Copy original dataset
-% E = wekaCopyDataset(D, D.numInstances); 
-% E.deleteStringAttributes();
-% 
-% % Create new attribute
-% attrValues = FastVector;
-% attrValues.addElement('G3');
-% attrValues.addElement('G34');
-% attrValues.addElement('G4');
-% newAttribute = Attribute('nlabel', attrValues);
-% 
-% % Insert new attribute
-% E.insertAttributeAt(newAttribute, E.numAttributes)
-% E.setClassIndex(E.classIndex+1);
-% 
-% E.deleteAttributeAt(E.classIndex-1);
-% 
-% 
-% selected_classes = {'G3', 'G34', 'G4'};
-% selected_classes_idx = [1,2,3];
-%     
-% % Get class vector
-% class_vector = E.attributeToDoubleArray(E.classIndex);
-% 
-% deleted_idx = [];
-% 
-% for i = fliplr(1:E.numInstances)
-% 
-%     if ~any(class_vector(i) == selected_classes_idx);
-%          E.delete(i-1);
-%          deleted_idx = [deleted_idx i-1];
-%     end        
-% end
-% 
-% new_class_vector = E.attributeToDoubleArray(E.classIndex);
-% 
-% 
-% % Replace old attr values with new ones :D 
-% % Create the new attribute 
-% attrValues = FastVector;
-% attrValues.addElement('G3');
-% attrValues.addElement('G34');
-% attrValues.addElement('G4');
-% newAttribute = Attribute('nlabel', attrValues);
-% 
-% % Insert new attribute
-% E.insertAttributeAt(newAttribute, E.numAttributes)
-% E.setClassIndex(E.classIndex+1);
-% 
-% E.deleteAttributeAt(E.classIndex-1);
-% 
-% new_class_vector = E.attributeToDoubleArray(E.classIndex);
+% Set new attribute to class index
+TRAIN.setClassIndex(TRAIN.classIndex+1);
+TEST.setClassIndex(TEST.classIndex+1);
 
+% Delete old class attribute
+TRAIN.deleteAttributeAt(TRAIN.classIndex-1);
+TEST.deleteAttributeAt(TEST.classIndex-1);
 
-%  Does not work on class attribute ?
-% filter_type = 'weka.filters.unsupervised.instance.RemoveWithValues';
-% filter_options = '-C 796 -L 1,2,3';
-% E = wekaApplyFilter(D, filter_type, filter_options);
+% Add class labels to TRAIN 
+for i = 0:length(trainValues)-1
+    TRAIN.instance(i).setValue(TRAIN.classIndex, trainValues(i+1));
+end
 
+disp(TRAIN.attributeStats(TRAIN.classIndex));
 
-%% Leave-one-image-out cross-validation folds - randomly selected
-
-% Image folds:
-testSplitSize = 4;
-numFolds = 10;
-
-% Get datasets by filename 'string' attribute
-filename_attr_index = 0;
+% Remove string attributes
 
 % Find index of filename attribute
-for i = 0:D.numAttributes
-    if strfind(char(D.attribute(i)), 'filename');
-        filename_attr_index = i;
-        break;
+for i = 0:TRAIN.numAttributes
+    if strfind(char(TRAIN.attribute(i)), 'filename');
+        filename_attr_index = i;  break;
     end
 end
 
-filename_attr = D.attributeToDoubleArray(filename_attr_index);
-label_attr = D.attributeToDoubleArray(D.classIndex);
+filename_ATTR = TRAIN.attribute(filename_attr_index);
+filename_TRAIN = TRAIN.attributeToDoubleArray(filename_attr_index);
+filename_TEST = TEST.attributeToDoubleArray(filename_attr_index);
+
+disp(TRAIN.attributeStats(TRAIN.classIndex));
+disp(TEST.attributeStats(TEST.classIndex));
+
+TRAIN.deleteStringAttributes;
+TEST.deleteStringAttributes;
+
+%% BUILD CLASSIFIER ON TRAIN SET
+
+classifier_type = 'trees.RandomForest';
+classifier_options = '-I 100 -K 7 ';
+
+model = wekaTrainModel(TRAIN, classifier_type, classifier_options);
+
+%% CLASSIFY TEST SET
+
+[classPreds classProbs confusionMatrix] = wekaClassify(TEST, model);
+
+% And assign predicted labels to each instance in TEST SET
+for i = 0:TEST.numInstances-1
+    TEST.instance(i).setValue(TEST.classIndex, classPreds(i+1));
+end
+
+fprintf('G4/5 Assigned to G4 | G5 : \n');
+disp(confusionMatrix);
+
+%% JOIN TEST AND TRAIN SETS 
+
+for i = 0:TEST.numInstances-1
+    TRAIN.add(TEST.instance(i));
+end
+
+% And write to file
+output_filename = 'G4-G5_consolidated.arff';
+
+wekaSaveArff(output_filename, TRAIN);
+
+%% LOIO cross-validation folds - randomly selected
+
+testSplitSize = 2;
+numFolds = 10;
+
+filename_attr = [filename_TRAIN ; filename_TEST];
+label_attr = TRAIN.attributeToDoubleArray(TRAIN.classIndex);
 filename_groups = unique(filename_attr);
 
 cmbns = nchoosek(filename_groups, testSplitSize);   % Every possible fold of the image set
@@ -221,7 +201,7 @@ for i = 1:numFolds
         fold_idx = [fold_idx ; find(filename_attr == filename_group_index)];        
     end
     
-    nonfold_idx = [1:D.numInstances];
+    nonfold_idx = [1:TRAIN.numInstances];
     nonfold_idx(fold_idx) = [];
     
     % Since java indexes from 0 .. 
@@ -236,45 +216,39 @@ end
 
 
 %% Manage feature (sub)sets .. 
-% 
-% feature_sets = struct(  'ALL', [0:D.numAttributes-2], ...
-%                         'CICM', [0:19 45:49], ...
-%                         'CICM_P', [20:44], ...
-%                         'HARALICK_LAB', [50:166], ...
-%                         'HARALICK_RGB', [167:211], ...
-%                         'SHAPE', [212:223], ...
-%                         'HARALICK_CICM', [0:19 45:166]  );
-%                     
-
-ALL_features = [0:D.numAttributes-2];
-
-
-% feature_set_names = {'CICM_v0', 'CICM_v1', 'CICM_v2', 'CICM_v3'
-                     
 
 feature_set_names = { 'CICM_v0',
                       'CICM_v1',
                       'CICM_v2',
                       'CICM_v3',
-                      'CICM_v4',
-                      'GLCV_LAB',
-                      'GLCV_RGB', 
+                      'CICM_v4', 
                       'HARALICK_LAB',
                       'HARALICK_RGB',
-                      'SHAPE'};
+                      'HISTOGRAM_LAB', 
+                      'HISTOGRAM_RGB',
+                      'SHAPE',
+                      'HARALISTOGRAM_LAB', 
+                      'HARALISTOGRAM_RGB', 
+                      'HARALICK_LAB_SHAPE', 
+                      'HARALICK_LAB_CICMv0', 
+                      'ALL'};
                     
 feature_set_idxs = { [1:25], ...
                      [26:50], ...
                      [51:75], ...
                      [76:90], ...
                      [91:105], ...
-                     [106:513], ...
-                     [514:621], ...
-                     [622:738], ...
-                     [739:783], ...
-                     [784:795]  };
-                                  
-                    
+                     [106:465], ...
+                     [466:735], ...
+                     [736:816], ...
+                     [817:897], ...
+                     [898:909], ...
+                     [106:465 , 736:816], ...
+                     [466:735 , 817:897], ...
+                     [106:465 , 898:909], ...
+                     [106:465 , 1:25], ...
+                     [0:D.numAttributes-2] };
+                                    
 %% Split dataset by each fold and classify
 
 % Assuming 'D' is the primary dataset
@@ -286,13 +260,14 @@ classifier_type = 'trees.RandomForest';
 classifier_options = '-I 50 -K 7 ' ;
 
 fprintf('Leave-one-image-out Cross-Validation: \n');
+fprintf('%s \n', char(TRAIN.classAttribute.toString));
 fprintf('NumFolds: %i \n', numFolds);
 fprintf('Test split size: %i \n', testSplitSize);
 
-for f = [1,2,4,5,8,10] %length(feature_set_names)
+for f = [1,2,4:15] %length(feature_set_names)
     
     % Copy original dataset 
-    E = wekaCopyDataset(D, D.numInstances); 
+    E = wekaCopyDataset(TRAIN, TRAIN.numInstances); 
     E.deleteStringAttributes();
     
     % Name of feature set grouping

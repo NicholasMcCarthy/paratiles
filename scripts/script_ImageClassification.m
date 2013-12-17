@@ -27,16 +27,6 @@ fprintf('Original dataset: %i features, %i instances \n', D.numAttributes, D.num
 
 fprintf('Reducing dataset size.');
 tic;
-<<<<<<< HEAD
-D = wekaLoadArff(dataset_path);
-
-E = wekaApplyFilter(D, 'weka.filters.unsupervised.instance.Resample', '-S 1998 -Z 10');
-
-toc;
-
-D.numInstances
-E.numInstances
-=======
 % Filtered dataset (for training)
 E = wekaApplyFilter(D, 'weka.filters.unsupervised.instance.Resample', '-S 1998 -Z 10');
 toc;
@@ -192,7 +182,6 @@ sendmail('nicholas.mccarthy@gmail.com', 'Image classification data', 'Completado
 
 %% BELOW HERE IS NOW ROUGHWORK
 
->>>>>>> f13769d399821ea5cc1cf1c9aea495fc9bbf2117
 
 %% Training a classifier
 
@@ -203,7 +192,7 @@ fprintf('Training classifier: %s [%s] \n', classifier_type, classifier_options);
 
 tic;
 
-model = trainWekaClassifier(E, classifier_type, classifier_options);
+model = trainWekaClassifier(D, classifier_type, classifier_options);
 model.setProbabilityEstimates(true);    % Shouldn't be needed with set option string, but whatever ..
 
 toc;

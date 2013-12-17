@@ -14,12 +14,7 @@ end
 
 %% Loading a dataset 
 
-% datasets = 'CANCER_NONCANCER_main.arff'
-
-dataset_path = [env.dataset_dir 'ALL_all-features.arff'];
-% dataset_path = [env.dataset_dir 'G3-4_all-features.arff'];
-% dataset_path = [env.dataset_dir 'TIS-G3-4-5_all-BALANCED.arff'];
-
+dataset_path = [env.dataset_dir 'ICPR_features.arff'];
 
 fprintf('Loading dataset: %s \n', dataset_path);
 
@@ -30,124 +25,66 @@ fprintf('Dataset: %s  \t %i features, %i instances \n', dataset_path, D.numAttri
 fprintf(['Class attribute: ' char(D.classAttribute.toString) '\n']);
 
 
-%% Create new class attribute 
-% Convert {G3, G34, G4, G45, G5} to {CAN} 
+%% SUBSET DATASET TO {G3, G5}
 
-import weka.core.Attribute;
-import weka.core.FastVector;
 
-% Create the new attribute 
-attrLabel = java.lang.String('newlabel');
-attrValues = FastVector;
-attrValues.addElement('TIS');
-attrValues.addElement('CAN');
-newAttribute = Attribute('nlabel', attrValues);
+E = wekaCopyDataset(D, 0);
 
-% Insert attribute at end of dataset 
-D.insertAttributeAt(newAttribute, D.numAttributes)
+classAttribute = D.classAttribute;
+classVector = D.attributeToDoubleArray(D.classIndex);
 
-% Indices of old and new class values
-oldClassIndex = D.classIndex;
-newClassIndex = D.classIndex+1;
-
-% Get old class values (as factor indices)
-oldValues = D.attributeToDoubleArray(oldClassIndex);
-
-% Map renamed values to new factor index 
-oldValues(oldValues>=1) = 1;
-
-for i = 0:D.numInstances-1
-    D.instance(i).setValue(newClassIndex, oldValues(i+1));
+for i = 0:length(classVector)-1
+    
+    if (classVector(i+1) == 1 || classVector(i+1) == 5)  % Add G3, G5 to E
+        E.add(D.instance(i));
+    end
+    
 end
 
-% Swap class index values
-D.setClass(D.attribute(newClassIndex));
-% And delete old class attribute!
-D.deleteAttributeAt(oldClassIndex);
+oldValues = E.attributeToDoubleArray(E.classIndex);
+oldValues(oldValues ==1) = 0;  % Map old values to new indices
+oldValues(oldValues ==5) = 1;
 
-fprintf(['Converted Class attribute: ' char(D.classAttribute.toString) '\n']);
+% Create new attribute
+newAttribute = wekaCreateAttribute('nlabel', 'nominal', {'G3', 'G5'});
 
-%% Subset dataset to selected classes 
+% Insert new attribute 
+E.insertAttributeAt(newAttribute, E.classIndex+1);
 
-% % Copy original dataset
-% E = wekaCopyDataset(D, D.numInstances); 
-% E.deleteStringAttributes();
-% 
-% % Create new attribute
-% attrValues = FastVector;
-% attrValues.addElement('G3');
-% attrValues.addElement('G34');
-% attrValues.addElement('G4');
-% newAttribute = Attribute('nlabel', attrValues);
-% 
-% % Insert new attribute
-% E.insertAttributeAt(newAttribute, E.numAttributes)
-% E.setClassIndex(E.classIndex+1);
-% 
-% E.deleteAttributeAt(E.classIndex-1);
-% 
-% 
-% selected_classes = {'G3', 'G34', 'G4'};
-% selected_classes_idx = [1,2,3];
-%     
-% % Get class vector
-% class_vector = E.attributeToDoubleArray(E.classIndex);
-% 
-% deleted_idx = [];
-% 
-% for i = fliplr(1:E.numInstances)
-% 
-%     if ~any(class_vector(i) == selected_classes_idx);
-%          E.delete(i-1);
-%          deleted_idx = [deleted_idx i-1];
-%     end        
-% end
-% 
-% new_class_vector = E.attributeToDoubleArray(E.classIndex);
-% 
-% 
-% % Replace old attr values with new ones :D 
-% % Create the new attribute 
-% attrValues = FastVector;
-% attrValues.addElement('G3');
-% attrValues.addElement('G34');
-% attrValues.addElement('G4');
-% newAttribute = Attribute('nlabel', attrValues);
-% 
-% % Insert new attribute
-% E.insertAttributeAt(newAttribute, E.numAttributes)
-% E.setClassIndex(E.classIndex+1);
-% 
-% E.deleteAttributeAt(E.classIndex-1);
-% 
-% new_class_vector = E.attributeToDoubleArray(E.classIndex);
+% Set new attribute to class index
+E.setClassIndex(E.classIndex+1);
 
+% Delete old class attribute
+E.deleteAttributeAt(E.classIndex-1);
 
-%  Does not work on class attribute ?
-% filter_type = 'weka.filters.unsupervised.instance.RemoveWithValues';
-% filter_options = '-C 796 -L 1,2,3';
-% E = wekaApplyFilter(D, filter_type, filter_options);
+% Add class labels to TRAIN 
+for i = 0:length(oldValues)-1
+    E.instance(i).setValue(E.classIndex, oldValues(i+1));
+end
 
+disp(E.attributeStats(E.classIndex));
 
-%% Leave-one-image-out cross-validation folds - randomly selected
-
-% Image folds:
-testSplitSize = 4;
-numFolds = 10;
-
-% Get datasets by filename 'string' attribute
-filename_attr_index = 0;
+% Remove string attributes
 
 % Find index of filename attribute
-for i = 0:D.numAttributes
-    if strfind(char(D.attribute(i)), 'filename');
-        filename_attr_index = i;
-        break;
+for i = 0:E.numAttributes
+    if strfind(char(E.attribute(i)), 'filename');
+        filename_attr_index = i;  break;
     end
 end
 
-filename_attr = D.attributeToDoubleArray(filename_attr_index);
-label_attr = D.attributeToDoubleArray(D.classIndex);
+filename_ATTR = E.attribute(filename_attr_index);
+filename_vector = E.attributeToDoubleArray(filename_attr_index);
+
+E.deleteStringAttributes;
+
+%% LOIO cross-validation folds - randomly selected
+
+testSplitSize = 3;
+numFolds = 20;
+
+filename_attr = filename_vector;
+label_attr = E.attributeToDoubleArray(E.classIndex);
 filename_groups = unique(filename_attr);
 
 cmbns = nchoosek(filename_groups, testSplitSize);   % Every possible fold of the image set
@@ -221,7 +158,7 @@ for i = 1:numFolds
         fold_idx = [fold_idx ; find(filename_attr == filename_group_index)];        
     end
     
-    nonfold_idx = [1:D.numInstances];
+    nonfold_idx = [1:E.numInstances];
     nonfold_idx(fold_idx) = [];
     
     % Since java indexes from 0 .. 
@@ -236,45 +173,39 @@ end
 
 
 %% Manage feature (sub)sets .. 
-% 
-% feature_sets = struct(  'ALL', [0:D.numAttributes-2], ...
-%                         'CICM', [0:19 45:49], ...
-%                         'CICM_P', [20:44], ...
-%                         'HARALICK_LAB', [50:166], ...
-%                         'HARALICK_RGB', [167:211], ...
-%                         'SHAPE', [212:223], ...
-%                         'HARALICK_CICM', [0:19 45:166]  );
-%                     
-
-ALL_features = [0:D.numAttributes-2];
-
-
-% feature_set_names = {'CICM_v0', 'CICM_v1', 'CICM_v2', 'CICM_v3'
-                     
 
 feature_set_names = { 'CICM_v0',
                       'CICM_v1',
                       'CICM_v2',
                       'CICM_v3',
-                      'CICM_v4',
-                      'GLCV_LAB',
-                      'GLCV_RGB', 
+                      'CICM_v4', 
                       'HARALICK_LAB',
                       'HARALICK_RGB',
-                      'SHAPE'};
+                      'HISTOGRAM_LAB', 
+                      'HISTOGRAM_RGB',
+                      'SHAPE',
+                      'HARALISTOGRAM_LAB', 
+                      'HARALISTOGRAM_RGB', 
+                      'HARALICK_LAB_SHAPE', 
+                      'HARALICK_LAB_CICMv0', 
+                      'ALL'};
                     
 feature_set_idxs = { [1:25], ...
                      [26:50], ...
                      [51:75], ...
                      [76:90], ...
                      [91:105], ...
-                     [106:513], ...
-                     [514:621], ...
-                     [622:738], ...
-                     [739:783], ...
-                     [784:795]  };
-                                  
-                    
+                     [106:465], ...
+                     [466:735], ...
+                     [736:816], ...
+                     [817:897], ...
+                     [898:909], ...
+                     [106:465 , 736:816], ...
+                     [466:735 , 817:897], ...
+                     [106:465 , 898:909], ...
+                     [106:465 , 1:25], ...
+                     [0:D.numAttributes-2] };
+                                    
 %% Split dataset by each fold and classify
 
 % Assuming 'D' is the primary dataset
@@ -289,11 +220,11 @@ fprintf('Leave-one-image-out Cross-Validation: \n');
 fprintf('NumFolds: %i \n', numFolds);
 fprintf('Test split size: %i \n', testSplitSize);
 
-for f = [1,2,4,5,8,10] %length(feature_set_names)
+for f = [1, 10, 11] %length(feature_set_names)
     
     % Copy original dataset 
-    E = wekaCopyDataset(D, D.numInstances); 
-    E.deleteStringAttributes();
+    F = wekaCopyDataset(E, E.numInstances); 
+    F.deleteStringAttributes();
     
     % Name of feature set grouping
     feature_set_name = feature_set_names{f};
@@ -304,7 +235,7 @@ for f = [1,2,4,5,8,10] %length(feature_set_names)
     if ~strcmpi(feature_set_name, 'ALL')
         
         % Indices of selected feature set 
-        feature_set_idx = [feature_set_idxs{f} E.classIndex+1];       % Don't delete the class index either .. 
+        feature_set_idx = [feature_set_idxs{f} F.classIndex+1];       % Don't delete the class index either .. 
         feature_set_str = num2str(feature_set_idx);                 % Convert attribute indices to string
         feature_set_str = regexprep(feature_set_str, '\s*', ',');   % Replace whitespace with single comma
         
@@ -312,7 +243,7 @@ for f = [1,2,4,5,8,10] %length(feature_set_names)
         % indices + class attribute is kept 
         remove_filter_options = ['-R ' feature_set_str ' -V'];  
             
-        E = wekaApplyFilter(E, 'weka.filters.unsupervised.attribute.Remove', remove_filter_options);
+        F = wekaApplyFilter(F, 'weka.filters.unsupervised.attribute.Remove', remove_filter_options);
     end
 
 %     % Print attribute names
@@ -324,25 +255,24 @@ for f = [1,2,4,5,8,10] %length(feature_set_names)
     for i = 1:numFolds
 
 %         fprintf('Fold %i \n.', i);
-        train = Instances(E, length(loi_folds(i).train_idx));    % Init train as the primary dataset
-        test = Instances(E, length(loi_folds(i).test_idx));      % Init test as empty dataset
+        train = Instances(F, length(loi_folds(i).train_idx));    % Init train as the primary dataset
+        test = Instances(F, length(loi_folds(i).test_idx));      % Init test as empty dataset
         
         test_idx = loi_folds(i).test_idx;
         train_idx = loi_folds(i).train_idx;
                 
 %         fprintf('\tPopulating testing set .. \n');
         for j = 1:length(test_idx)   % For each selected test index in this fold
-            test.add(E.instance(test_idx(j)));                          % Add this instance index to test from D
+            test.add(F.instance(test_idx(j)));                          % Add this instance index to test from D
         end
 
 %         fprintf('\tPopulating training set .. \n');
         for j = 1:length(train_idx)   % For each selected test index in this fold
-            train.add(E.instance(train_idx(j)));                          % Add this instance index to test from D
+            train.add(F.instance(train_idx(j)));                          % Add this instance index to test from D
         end
       
         % Resampling values 
 %         test = wekaApplyFilter(test, 'weka.filters.unsupervised.attribute.Remove', remove_filter_options);
-        
         
 %         fprintf('\tTraining classifier .. \n');
         model = wekaTrainModel(train, classifier_type, classifier_options);
@@ -380,7 +310,6 @@ for f = [1,2,4,5,8,10] %length(feature_set_names)
     
     microAccuracy = (ac(1) + ac(4)) / sum(sum(ac));
     
-
 %     fprintf('Leave-one-image-out Cross-Validation: \n');
 %     fprintf('Feature set: %s \n', feature_set_name);
 %     fprintf('NumFolds: %i \n', numFolds);

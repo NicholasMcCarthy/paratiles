@@ -154,52 +154,58 @@ save(['pixel.classifier/models/' modelname], 'NB');
 %% GET TEST IMAGES, COLOURMAPS
 
 PC1 = PixelClassifier(); % Uses default RGB values ..
-PC2 = PixelClassifier(['models/' modelname]);
+% PC2 = PixelClassifier(['models/' modelname]);
+
+% figure;
+
+% cmap = jet(5);
+
+cmap = [1 1 1;
+        1 1 1;
+        1 0.3 0.5;
+        1 0.6 0.8;
+        0 0 0]
+
+% subplot(131), imshow(I);
+% subplot(132), imshow(CI, cmap);
+% subplot(133), imshow(PCI, cmap);
+
+save_dir = [env.root_dir '/ICPR_sample_images/'];
 
 for i = 1:length(test_images);
     
     image_path = test_images{i};
-    
     I = imread(image_path);
-    
     I = I(:,:, 1:3);
     
-    I_cd = ColourDeconvolve(I);
+    CI = PC1.ClassifyImage(I);
+    PCI = PC1.ProcessImage(CI);
     
-    G = PC1.ClassifyImage(I);
-    H = PC2.ClassifyImage(I_cd);
+    subplot(131), imshow(I);
+    subplot(132), imshow(CI, cmap);
+    subplot(133), imshow(PCI, cmap);
     
-    Gp = PC1.ProcessImage(G);
-    Hp = PC2.ProcessImage(H);
+    userinput = input('Save this image set? [Y/N \n', 's');
     
-    cmap = jet(5);
-    
-    subplot(321), imshow(I);
-    subplot(322), imshow(I_cd);
-    subplot(323), imshow(G, cmap);
-    subplot(324), imshow(H, cmap);
-    subplot(325), imshow(Gp, cmap);
-    subplot(326), imshow(Hp, cmap);
-    
-    image_name = fliplr(strtok(fliplr(image_path), '/'));
-    outfile = [output_dir regexprep(image_name, '.tif', '_derp.png')];
-    saveas(gcf, outfile);
+    if strcmpi(userinput, 'y')
+        sinput = input('Naming scheme: \n', 's');
+        
+        image_name = [save_dir strcat(sinput, '_tile.png')];
+        ci_name  = [save_dir strcat(sinput, '_CI.png')];
+        pci_name  = [save_dir strcat(sinput, '_PCI.png')];
+        
+        CI2 = CI+1;
+        PCI2 = PCI+1;
+        
+        CI2 = index2rgb_direct(CI2, cmap);
+        PCI2 = index2rgb_direct(PCI2, cmap);
+        
+        imwrite(I, image_name);
+        imwrite(CI2, ci_name);
+        imwrite(PCI2, pci_name);
+    end
     
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 %% TEST OUTPUT OF MODELS ON SAMPLE IMAGES (smaller, doesn't batch process)
 

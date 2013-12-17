@@ -6,23 +6,25 @@
 %                 'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'} ...
 %                  'datasets/HISTOGRAM_RGB', 'datasets/HARALICK_RGB'};
 
-feature_dirs = { 'datasets/PP1', 'datasets/PP3', ...
+feature_dirs = { 'datasets/HARALICK_LAB', 'datasets/HARALICK_RGB', ...
                 'datasets/CICM-v0', 'datasets/CICM-v1','datasets/CICM-v2','datasets/CICM-v3', ...
-                'datasets/CICM-v4', 'datasets/SHAPE.features', 'datasets/GLCMVector_D1_NL8',}
+                'datasets/CICM-v4', 'datasets/SHAPE.features', ...
+                'datasets/HISTOGRAM_LAB', 'datasets/HISTOGRAM_RGB'};
 
 label_path = 'datasets/class.info/labels.csv';
 filename_path = 'datasets/class.info/filenames.csv';
 
 classlabels = {'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
 % classlabels = {'G3', 'G4'};
-spec_limit = 70000;
+
+spec_limit = 80000;
 
 output_type = 'arff';
 
 writeHeaders = false;       % Irrelevant for ARFF files
 writeLabels = false;
 
-dataset_name = 'TIS-G3-4-5_cicm_all';
+dataset_name = 'ICPR_features';
 
 output_path = ['datasets/' dataset_name '.' output_type];
     
