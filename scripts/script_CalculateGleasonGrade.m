@@ -9,7 +9,6 @@
 
 %% Calculating gleason grade of mask
 
-
 masks = getFiles(env.image_dir, 'Wildcard', 'mask-PT.idx');
 
 grades = {'G3', 'G34', 'G4', 'G45', 'G5'};

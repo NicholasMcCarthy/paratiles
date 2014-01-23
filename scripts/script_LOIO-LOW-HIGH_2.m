@@ -9,7 +9,7 @@ if (matlabpool('size') == 0)  matlabpool local 4; end;
 
 %% LOAD DATASET(S)
 
-dataset_path = [env.dataset_dir 'ICPR_features.arff'];
+dataset_path = [env.dataset_dir '/ICPR_features.arff'];
 fprintf('Loading dataset: %s \n', dataset_path);
 
 % Full dataset

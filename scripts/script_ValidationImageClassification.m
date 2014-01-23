@@ -24,8 +24,14 @@ image_IFD_desc = {'40x', '20x', '10x', '5x', '2.5x', ...
 %% DEFINE FEATURE SETS TO BE EXTRACTED
 
 % Haralick features
-haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', [16 64], 'Distances', [1]);
-haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [16 64], 'Distances', [1], 'Prefix', 'lab', 'UseStrings', true);
+haralick_func_lab = @(I) extract_haralick_features(rgb2cielab(I), 'NumLevels', [32], 'Distances', [1 2]);
+haralick_labels_lab = label_haralick_features('Channels', {'L', 'A', 'B'}, 'NumLevels', [32], 'Distances', [1 2], 'Prefix', 'lab', 'UseStrings', true);
+
+% Haralick features H&E
+drop_dim = @(x) x(:,:,1:2); % Drops 3rd channel of 3rd dimension from image (only for H&E image)
+haralick_func_he = @(I) extract_haralick_features(drop_dim(I), 'NumLevels', [16 64], 'Distances', [1 2]);
+haralick_labels_he = label_haralick_features('Channels', {'H', 'E'}, 'NumLevels', [16 64], 'Distances', [1 2], 'Prefix', 'he', 'UseStrings', true);
+
 
 functions = { haralick_func_lab }; 
 labels = [ haralick_labels_lab ];
@@ -38,7 +44,7 @@ func_fe = FE.BlockProcHandle;
 
 tilesize = 256;
 
-temp_dir = [env.temp_dir '/temp_VALIDATION_HARALICK'];
+temp_dir = [env.temp_dir '/temp_VALIDATION_HARALICK2'];
 
 black_pixel_mask = @(I) repmat(all(~I, 3), [1 1 3]);
 
@@ -52,7 +58,7 @@ for i = 1:length(images);
     image_path = selected_ifd_paths{1};
     
     image_info = imfinfo(image_path);
-    
+        
     % Get number of blocks processed in this image
     numBlocks = ceil( (image_info.Width) / tilesize ) * ceil( (image_info.Height) / tilesize);
     
@@ -77,9 +83,9 @@ for i = 1:length(images);
     matfile = strcat(temp_dir, '/', num2str(i), '_', regexprep(image_name, '.tiff', ''), '_temp_data.mat');
     save(matfile, 'data');
 
-
     mytime = mytime / 60;
     message = sprintf('Took %f minutes to run', mytime);
+    title = sprintf('[%d/%d] Feature extraction', i, length(images));
     sendmail('nicholas.mccarthy@gmail.com', title, message);
     
 end

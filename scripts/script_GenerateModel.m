@@ -3,12 +3,48 @@
 
 %% Load dataset(s)
 
-classlabels = {'G3', 'G34' 'G4', 'G45', 'G5', 'TIS'};
+dataset_path = ['datasets/ICPR_features.arff'];
 
-output_path = ['datasets/' thisclass{:} '_ALL-FEATURES.arff']
+D = wekaLoadArff(dataset_path);
 
+fprintf('Dataset: %s  \t %i features, %i instances \n', dataset_path, D.numAttributes, D.numInstances);
+fprintf(['Class attribute: ' char(D.classAttribute.toString) '\n']);
+
+
+%% Convert class attribute (and sample if necessary)
+
+newAttribute = wekaCreateAttribute('nlabel', 'nominal', {'TIS', 'CAN'});
+D.insertAttributeAt(newAttribute, D.numAttributes)      % Insert attribute at end of dataset 
+
+% Indices of old and new class values
+oldClassIndex = D.classIndex;
+newClassIndex = D.classIndex+1;
+
+oldValues = D.attributeToDoubleArray(oldClassIndex);    % Get old class values (as factor indices)
+oldValues(oldValues>=1) = 1;                            % Map renamed values to new factor index 
+
+for i = 0:D.numInstances-1
+    D.instance(i).setValue(newClassIndex, oldValues(i+1));
+end
+
+D.setClass(D.attribute(newClassIndex)); % Swap class index values
+D.deleteAttributeAt(oldClassIndex);     % And delete old class attribute!
+
+fprintf(['Converted Class attribute: ' char(D.classAttribute.toString) '\n']);
 
 %% Filter dataset
+
+D.numInstances
+disp('Removing samples ..');
+D = wekaApplyFilter(D, 'weka.filters.unsupervised.instance.Resample', '-S 1998 -Z 50');
+
+%% Subset dataset
+
+selected_idx = [106:465];
+
+
+
+%%
 
 classcombns = combnk(classlabels, 2);
 

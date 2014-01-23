@@ -6,31 +6,31 @@
 %                 'datasets/HISTOGRAM_LAB', 'datasets/CICM-r1.features'} ...
 %                  'datasets/HISTOGRAM_RGB', 'datasets/HARALICK_RGB'};
 
-feature_dirs = { 'datasets/HARALICK_LAB', 'datasets/HARALICK_RGB', ...
-                'datasets/CICM-v0', 'datasets/CICM-v1','datasets/CICM-v2','datasets/CICM-v3', ...
-                'datasets/CICM-v4', 'datasets/SHAPE.features', ...
-                'datasets/HISTOGRAM_LAB', 'datasets/HISTOGRAM_RGB'};
+feature_dirs = { 'datasets/HARALICK_LAB' } %, 'datasets/HARALICK_RGB', ...
+%                 'datasets/CICM-v0', 'datasets/CICM-v1','datasets/CICM-v2','datasets/CICM-v3', ...
+%                 'datasets/CICM-v4', 'datasets/SHAPE.features', ...
+%                 'datasets/HISTOGRAM_LAB', 'datasets/HISTOGRAM_RGB'};
 
 label_path = 'datasets/class.info/labels.csv';
 filename_path = 'datasets/class.info/filenames.csv';
 
-classlabels = {'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
+classlabels = {'NON', 'TIS', 'G3', 'G34', 'G4', 'G45', 'G5'};
 % classlabels = {'G3', 'G4'};
 
-spec_limit = 80000;
+spec_limit = 60000;
 
 output_type = 'arff';
 
 writeHeaders = false;       % Irrelevant for ARFF files
 writeLabels = false;
 
-dataset_name = 'ICPR_features';
+dataset_name = 'eval1_training_set';
 
 output_path = ['datasets/' dataset_name '.' output_type];
     
-[status cmdout] = GenerateDataset( env.root_dir, 'Type', output_type, ...
+[status cmdout] = GenerateDataset( env.base_dir, 'Type', output_type, ...
                         'Directory', feature_dirs, 'Labels', label_path, 'Classes', classlabels, ...
-                        'Output', output_path, 'Filenames', filename_path, ...
+                        'Output', output_path, ... % 'Filenames', filename_path, ...
                         'LabelsFile', writeLabels, 'HeadersFile', writeHeaders, 'Limit', spec_limit, 'AssignZeros', 1);
 
 %% Generate ARFF dataset for NONCANCER TILES

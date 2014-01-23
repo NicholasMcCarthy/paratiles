@@ -24,6 +24,9 @@ p.parse(varargin{:});
 
 M = p.Results.Image;
 
+% Median filter image for better estimation of tissue area coverage
+% M = medfilt2(M, [3 3]);
+
 %% %%%%%%%%%%%%%
 % Some variables %
 %%%%%%%%%%%%%%%%%%
@@ -50,8 +53,11 @@ G45_area    = sum(sum(M==grade_idx.G45));
 G5_area     = sum(sum(M==grade_idx.G5));
 grade_areas = [G3_area, G34_area, G4_area, G45_area, G5_area];
 
+
 % Area of cancer-noncancer tissue
 stats.cancer_area = sum(grade_areas);
+
+if stats.cancer_area == 0
 
 stats.cancer_tissue_ratio = stats.cancer_area / stats.tissue_area;
 
@@ -62,30 +68,32 @@ stats.PRIMARY_score = grade_score{grade_areas == max(grade_areas)};
 uv = unique(grade_areas);
 second = uv(end-1);
 
-% Secondary tumour grade
-stats.SECONDARY_grade = grades{grade_areas == second};
-stats.SECONDARY_score = grade_score{grade_areas == second};
-
-% Gleason score
-stats.GLEASON_score = stats.PRIMARY_score + stats.SECONDARY_score;
+% Secondary tumour grade & Gleason Score
+if second ~= 0
+    stats.SECONDARY_grade = grades{grade_areas == second};
+    stats.SECONDARY_score = grade_score{grade_areas == second};
+    
+    % If there is a secondary grade, sum primary and secondary to get Gleason score
+    stats.GLEASON_score = stats.PRIMARY_score + stats.SECONDARY_score;
+else
+    stats.SECONDARY_grade = 0;
+    stats.SECONDARY_score = 0;
+    
+    % If there is no secondary grade, double primary to get Gleason score
+    stats.GLEASON_score = stats.PRIMARY_score + stats.PRIMARY_score;
+end
 
 % Number of distinct tumour regions
 TIS_area = M==1;
 O = M;
 O(TIS_area) = 0;
 
-for u = 1:length(unique(M));
-   
-    
-end
-
-
 O(O>0) = 1;
 O = logical(O);
 
 CC = bwconncomp(O, 8);
 
-stats.num_distinct_regions = CC.NumObjects;
+stats.num_tumour_regions = CC.NumObjects
 
 end
 
